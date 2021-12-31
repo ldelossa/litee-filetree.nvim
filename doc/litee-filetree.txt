@@ -1,0 +1,229 @@
+*litee-filetree.nvim* litee-filetree.nvim
+
+Author:   Louis DeLosSantos <louis.delos@gmail.com>
+Homepage: <https://github.com/ldelossa/litee-filetree.nvim>
+License:  MIT license
+
+██╗     ██╗████████╗███████╗███████╗   ███╗   ██╗██╗   ██╗██╗███╗   ███╗
+██║     ██║╚══██╔══╝██╔════╝██╔════╝   ████╗  ██║██║   ██║██║████╗ ████║ Lightweight
+██║     ██║   ██║   █████╗  █████╗     ██╔██╗ ██║██║   ██║██║██╔████╔██║ Integrated
+██║     ██║   ██║   ██╔══╝  ██╔══╝     ██║╚██╗██║╚██╗ ██╔╝██║██║╚██╔╝██║ Text
+███████╗██║   ██║   ███████╗███████╗██╗██║ ╚████║ ╚████╔╝ ██║██║ ╚═╝ ██║ Editing
+╚══════╝╚═╝   ╚═╝   ╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝  ╚═══╝  ╚═╝╚═╝     ╚═╝ Environment
+====================================================================================
+CONTENTS                                                         *litee-contents*
+
+  1     Intro.........................................|litee-filetree-intro|
+  2     Usage.........................................|litee-filetree-usage|
+  2.1    Unified Panel................................|litee-filetree-unified-panel|  
+  3     Commands......................................|litee-filetree-commands|
+  4     Mappings......................................|litee-filetree-mappings|
+  5     Config........................................|litee-filetree-config|
+  6     Highlights....................................|litee-filetree-highlights|
+
+====================================================================================
+INTRODUCTION                                                  *litee-filetree-intro*
+
+litee-filetree utilizes the litee.nvim (https://github.com/ldelossa/litee.nvim) 
+library to implement a tool analogous to VSCode's "Explorer" tool. 
+
+This tool exposes an explorable tree of files and directories.
+
+Unlike other Neovim plugins, renames of files are correctly handled and recursive moves
+and copies are supported.
+
+Like all `litee.nvim` backed plugins the UI will work with other `litee.nvim` plugins, 
+keeping its appropriate place in a collapsible panel.
+
+====================================================================================
+Usage                                                         *litee-filetree-usage*
+
+First ensure you also have the litee.nvim (https://github.com/ldelossa/litee.nvim) 
+library installed.
+
+The Filetree UI can be opened with a call to ":LTOpenFiletree"
+
+Certain functionality like "moving" and "copying" require selecting a Filetree
+node first (defaults to s (select) and S (deselect) when inside a Filetree UI window.
+
+Commands can be used for this when not inside the Filetree UI window.
+See `litee-filetree-commands`.
+
+                                                            *litee-filetree-panel*
+
+`litee-filetree` utilizes the `litee.nvim` libray to integrate itself within
+the panel `litee.nvim` exposes.
+
+This means the filetree UI will share its portion of the panel with other
+`litee.nvim` backed plugin creating a unified panel experience similar to
+IDEs such as JetBrains and VSCode.
+
+The panel is defined and implemented in the `litee.nvim` module and configured
+on its own, this doc will cover some panel basics in the `litee-filetree-commands`
+and `litee-filetree-config` sections.
+
+From there check out `litee-commands` to manipulate the UI.
+
+====================================================================================
+COMMANDS                                                   *litee-filetree-commands*
+
+The `litee.nvim` library proper exports the panel which all `litee.nvim` backed
+plugins which display themselves should utilize.
+
+To toggle the panel open and close use the following command 
+(exported on `require('litee.lib').setup()`)
+
+    -- Toggle the litee.nvim panel open or close.
+    -- When toggled the relative window sizes are reset but the major 
+    -- size (width for left/right, height for top/bottom) are remembered.
+    vim.cmd("command! LTPanel       lua require('litee.ui').toggle_panel()")
+
+    -- Open the Filetree UI
+    vim.cmd("command! LTOpenFiletree          lua require('litee.filetree.handlers').filetree_handler()")
+    -- Can be used to toggle the panel open and jump directly to the Filetree 
+    -- panel component. Only valid if a Filetree is open and "LTCloseFiletree" has
+    -- not been called on the current tab.
+    vim.cmd("command! LTOpenToFiletree      lua require('litee.filetree').open_to()")
+    -- When called on a specific tabpage any filetree UI will be closed and cleared
+    -- from the panel. Toggling the panel will not open the most recent Filetree.
+    vim.cmd("command! LTCloseFiletree       lua require('litee.filetree').close_filetree()")
+    -- Similar to "LTCloseFiletree" but only hides the filetree UI from the panel. 
+    -- Toggling the panel will open the most recent filetree once again.
+    vim.cmd("command! LTHideFiletree        lua require('litee.filetree').hide_filetree()")
+    -- Progress the cursor in the filetree UI forward
+    vim.cmd("command! LTNextFiletree        lua require('litee.filetree').navigation('n')")
+    -- Progress the cursor in the filetree UI backwards
+    vim.cmd("command! LTPrevFiletree        lua require('litee.filetree').navigation('p')")
+    -- Expand the filetree node under the cursor
+    vim.cmd("command! LTExpandFiletree      lua require('litee.filetree').expand_filetree()")
+    -- Collapse the filetree node under the cursor
+    vim.cmd("command! LTCollapseFiletree    lua require('litee.filetree').collapse_filetree()")
+    -- Collapse all filetree nodes up to the root.
+    vim.cmd("command! LTCollapseAllFiletree lua require('litee.filetree').collapse_all_filetree()")
+    -- Jump to the source code buffer and line for the symbol under the cursor.
+    vim.cmd("command! LTJumpFiletree        lua require('litee.filetree').jump_filetree()")
+    -- Same as "LTJumpFiletree" but use a split.
+    vim.cmd("command! LTJumpFiletreeSplit   lua require('litee.filetree').jump_filetree('split')")
+    -- Same as "LTJumpFiletree" but use a vsplit.
+    vim.cmd("command! LTJumpFiletreeVSplit  lua require('litee.filetree').jump_filetree('vsplit')")
+    -- Same as "LTJumpFiletree" but use a new tab.
+    vim.cmd("command! LTJumpFiletreeTab     lua require('litee.filetree').jump_filetree('tab')")
+    -- Show LSP hover details for the filetree node under the cursor.
+    vim.cmd("command! LTHoverFiletree       lua require('litee.filetree').hover_filetree()")
+    -- Show node details for the filetree node under the cursor.
+    vim.cmd("command! LTDetailsFiletree     lua require('litee.filetree').details_filetree()")
+    -- Select the node for further Copy or Move operations
+    vim.cmd("command! LTSelectFiletree        lua require('litee.filetree').filetree_ops('select')")
+    -- Unselect the node to cancel a selection.
+    vim.cmd("command! LTDeSelectFiletree      lua require('litee.filetree').filetree_ops('deselect')")
+    -- Create a new file, if the the node under the cursor is a directory the file will
+    -- be created inside that directory.
+    vim.cmd("command! LTTouchFiletree         lua require('litee.filetree').filetree_ops('touch')")
+    -- Remove the file or directory under the cursor.
+    vim.cmd("command! LTRemoveFiletree        lua require('litee.filetree').filetree_ops('rm')")
+    -- (Recursive) Copy the currently selected node to another location in the filetree.
+    vim.cmd("command! LTCopyFiletree          lua require('litee.filetree').filetree_ops('cp')")
+    -- (Recursive) Move the currently selected node to another location in the filetree.
+    vim.cmd("command! LTMoveFiletree          lua require('litee.filetree').filetree_ops('mv')")
+    -- Create a directory, if the node under the cursor is a directory the new directory
+    -- will be created inside it. 
+    vim.cmd("command! LTMkdirFiletree         lua require('litee.filetree').filetree_ops('mkdir')")
+    -- Rename a directory or file. This rename will save any current windows with the old file name
+    -- and swap all windows to the new file when the rename completes. This avoids leaving the
+    -- old file around and accidentally writing it back to disk later.
+    vim.cmd("command! LTRenameFiletree        lua require('litee.filetree').filetree_ops('rename')")
+
+====================================================================================
+MAPPINGS                                                   *litee-filetree-mappings*
+
+litee-filetree.nvim creates its own buffers for usage and creates buffer local key maps
+for these windows. 
+
+The following key maps are defined and can be reviewed anytime by pressing "?" in
+a litee-filetree.nvim window.
+
+    vim.api.nvim_buf_set_keymap(buf, "n", "zo", ":LTExpandFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "zc", ":LTCollapseFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "zM", ":LTCollapseAllFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "<CR>", ":LTJumpFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "s", ":LTJumpFiletreeSplit<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "v", ":LTJumpFiletreeVSplit<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "t", ":LTJumpFiletreeTab<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "H", ":LTHideFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "X", ":LTCloseFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "n", ":LTTouchFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "D", ":LTRemoveFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "d", ":LTMkdirFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "r", ":LTRenameFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "m", ":LTMoveFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "p", ":LTCopyFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "s", ":LTSelectFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "S", ":LTDeSelectFiletree<CR>", opts)
+
+====================================================================================
+CONFIG                                                       *litee-filetree-config*
+
+`litee-filetree.nvim` is dependent on the `litee.nvim` library and will not
+export any commands unless this depedency is present. 
+
+Ensure the `litee.lib` can be correctly imported for `litee-filetree.nvim` to
+work correctly.
+
+The config table is described below:
+
+    M.config = {
+        -- the jump_mode used for jumping from
+        -- filetree node to source code line. 
+        -- "invoking" will use the last window that invoked the filetree (feels natural)
+        -- "neighbor" will use the closest neighbor opposite to the panel orientation 
+        -- (if panel is left, uses window to the right.)
+        jump_mode = "invoking",
+        -- enables hiding the cursor inside the Filetree UI.
+        hide_cursor = true,
+        -- sets a scrolloff when inside the Filetree UI so contents
+        -- are always centered.
+        scrolloff = true,
+        -- Maps arrow keys to resizing the Filetree UI within the `litee.nvim` Panel.
+        map_resize_keys = true,
+        -- Disables all highlighting.
+        no_hls = false,
+        -- If true litee-filetree will use and configure highlights
+        -- for the 'nvim-web-devicons` module.
+        use_web_devicons = true,
+        -- If true each node in the filetree will be rendereed with
+        -- its relative path from root. 
+        -- Can be useful when the Filetree window is longer then it is tall.
+        relative_filetree_entries = false
+    }
+
+Any overrides to this table can be supplied in the setup function:
+    `require('litee.filetree').setup({no_hls = true})`
+
+The above is an example of turning off all highlights but leaving all
+other values their default.
+
+To customize the panel orientation, notifications, etc... you should
+configure `litee.lib` to your liking. For example:
+
+    require('litee.lib').setup({
+        tree = {
+            icon_set = "codicons"
+        },
+        panel = {
+            orientation = "left",
+            panel_size  = 30
+        }
+    })
+
+See (:h litee-config) for full details on configuring the litee.nvim library.
+
+For an example configuration with suggested keymaps refer to my dotfiles:
+https://github.com/ldelossa/dotfiles/blob/master/nvim/lua/configs/litee.lua
+
+====================================================================================
+Highlights                                               *litee-filetree-highlights*
+
+All highlights used in the Filetree UI are exported by the 
+`litee.lib.highlights` module. 
+
+See (:h litee-highlights) for more details.
