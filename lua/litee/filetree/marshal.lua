@@ -14,7 +14,7 @@ local function resolve_file_name(uri)
 end
 
 -- marshal_func is a function which returns the necessary
--- values for marshalling a calltree node into a buffer
+-- values for marshalling a filetree node into a buffer
 -- line.
 function M.marshal_func(node)
     local icon_set = nil

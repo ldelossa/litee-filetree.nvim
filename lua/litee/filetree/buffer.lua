@@ -1,4 +1,4 @@
-local config = require('litee.calltree.config').config
+local config = require('litee.filetree.config').config
 local panel_config = require('litee.lib.config').config["panel"]
 local lib_util_buf = require('litee.lib.util.buffer')
 
