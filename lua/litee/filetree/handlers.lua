@@ -40,6 +40,13 @@ function M.filetree_handler()
          0
     )
     root.filetree_item = { uri = cwd, is_dir = true}
+    local range = {}
+    range["start"] = { line = 0, character = 0}
+    range["end"] = { line = 0, character = 0}
+    root.location = {
+        uri = "file://" .. root.filetree_item.uri,
+        range = range
+    }
 
     filetree.build_filetree_recursive(root, state, nil, "")
 

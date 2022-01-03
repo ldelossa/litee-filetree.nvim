@@ -176,7 +176,7 @@ M.jump_filetree = function(split)
         lib_notify.notify_popup_with_timeout("Must perform an call hierarchy LSP request first", 1750, "error")
         return
     end
-    local location = lib_util.resolve_location(ctx.node)
+    local location = ctx.node.location
     if location == nil or location.range.start.line == -1 then
         return
     end
@@ -256,6 +256,13 @@ function M.expand(root, component_state)
         child_node.filetree_item = {
             uri = uri,
             is_dir = (function() if is_dir == 0 then return false else return true end end)()
+        }
+        local range = {}
+        range["start"] = { line = 0, character = 0}
+        range["end"] = { line = 0, character = 0}
+        child_node.location = {
+            uri = "file://" .. child_node.filetree_item.uri,
+            range = range
         }
         table.insert(children, child_node)
     end
