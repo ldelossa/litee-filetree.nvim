@@ -668,12 +668,13 @@ end
 
 function M.setup(user_config)
     local function pre_window_create(state)
+        local tab = vim.api.nvim_get_current_tabpage()
         local cur_win = vim.api.nvim_get_current_win()
         -- unlike the other trees, we want invoked jumps
         -- to open the file in the last focused window.
         -- this updates the invoking window when the
         -- filetree is first opened.
-        if cur_win ~= state["filetree"].win then
+        if cur_win ~= state["filetree"].win and not lib_util_win.is_component_win(tab, cur_win) then
             state["filetree"].invoking_win = cur_win
         end
         local buf_name = "explorer"

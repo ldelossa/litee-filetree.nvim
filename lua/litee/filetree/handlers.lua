@@ -3,6 +3,7 @@ local lib_panel         = require('litee.lib.panel')
 local lib_tree          = require('litee.lib.tree')
 local lib_tree_node     = require('litee.lib.tree.node')
 local filetree          = require('litee.filetree')
+local filetree_au       = require('litee.filetree.autocmds')
 
 
 local M = {}
@@ -53,6 +54,12 @@ function M.filetree_handler()
     local global_state = lib_state.put_component_state(cur_tabpage, "filetree", state)
 
     lib_panel.toggle_panel(global_state, true, false)
+
+    -- hop into previous window, call file_tracking, then hop back into 
+    -- newly opened tree
+    vim.api.nvim_set_current_win(cur_win)
+    filetree_au.file_tracking()
+    vim.api.nvim_set_current_win(global_state["filetree"].win)
 end
 
 return M
