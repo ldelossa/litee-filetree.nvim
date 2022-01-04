@@ -7,7 +7,9 @@ local lib_notify        = require('litee.lib.notify')
 local lib_jumps         = require('litee.lib.jumps')
 local lib_navi          = require('litee.lib.navi')
 local lib_util_win      = require('litee.lib.util.window')
+
 local filetree_buf      = require('litee.filetree.buffer')
+local filetree_help_buf = require('litee.filetree.help_buffer')
 local marshal_func      = require('litee.filetree.marshal').marshal_func
 local config            = require('litee.filetree.config').config
 
@@ -651,6 +653,23 @@ function M.on_tab_closed(tab)
         return
     end
     lib_tree.remove_tree(state["filetree"].tree)
+end
+
+function M.help(display)
+    local ctx = ui_req_ctx()
+    if
+        ctx.state == nil or
+        ctx.cursor == nil or
+        ctx.state["filetree"].tree == nil
+    then
+        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 1750, "error")
+        return
+    end
+    if display then
+        vim.api.nvim_win_set_buf(ctx.state["filetree"].win, filetree_help_buf.help_buffer)
+    else
+        vim.api.nvim_win_set_buf(ctx.state["filetree"].win, ctx.state["filetree"].buf)
+    end
 end
 
 function M.dump_tree()
