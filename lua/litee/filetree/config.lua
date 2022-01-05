@@ -6,7 +6,8 @@ M.config = {
     select_hi   = "LTSelectFiletree",
     map_resize_keys = true,
     use_web_devicons = true,
-    relative_filetree_entries = false
+    relative_filetree_entries = false,
+    on_open = "popup",
 }
 
 return M
