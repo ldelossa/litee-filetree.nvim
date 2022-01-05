@@ -36,7 +36,9 @@ local function ui_req_ctx()
             vim.api.nvim_win_is_valid(state["filetree"].win) then
             cursor = vim.api.nvim_win_get_cursor(state["filetree"].win)
         end
-        node = lib_tree.marshal_line(cursor, state["filetree"].tree)
+        if cursor ~= nil then
+            node = lib_tree.marshal_line(cursor, state["filetree"].tree)
+        end
     end
 
     return {
@@ -66,10 +68,29 @@ end
 
 function M.open_to()
     local ctx = ui_req_ctx()
-    if ctx.state == nil then
+    if
+        ctx.state == nil or
+        ctx.state["filetree"] == nil
+    then
         return
     end
     lib_panel.open_to("filetree", ctx.state)
+end
+
+function M.popout_to()
+    local ctx = ui_req_ctx()
+    if
+        ctx.state == nil or
+        ctx.state["filetree"] == nil
+    then
+        vim.cmd(":LTOpenFiletree")
+        ctx = ui_req_ctx()
+        -- little hacky, but we need to close it again or else
+        -- popout_to will think the user had it opened and incorrectly
+        -- open the panel again.
+        lib_panel.toggle_panel(ctx.state, false, false, true)
+    end
+    lib_panel.popout_to("filetree", ctx.state)
 end
 
 -- close_filetree will close the filetree ui in the current tab
@@ -84,12 +105,15 @@ function M.close_filetree()
             vim.api.nvim_win_close(ctx.state["filetree"].win, true)
         end
     end
-    ctx.state["filetree"].win = nil
-
+    if ctx.state["filetree"].buf ~= nil then
+        if vim.api.nvim_buf_is_valid(ctx.state["filetree"].buf) then
+            vim.api.nvim_buf_delete(ctx.state["filetree"].buf, {force = true})
+        end
+    end
     if ctx.state["filetree"].tree ~= nil then
         lib_tree.remove_tree(ctx.state["filetree"].tree)
-        ctx.state["filetree"].tree = nil
     end
+    lib_state.put_component_state(ctx.tab, "filetree", nil)
 end
 
 -- hide_filetree will remove the filetree component from

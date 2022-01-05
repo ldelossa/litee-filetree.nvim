@@ -3,6 +3,7 @@ local M = {}
 function M.setup()
     vim.cmd("command! LTOpenFiletree          lua require('litee.filetree.handlers').filetree_handler()")
     vim.cmd("command! LTOpenToFiletree        lua require('litee.filetree').open_to()")
+    vim.cmd("command! LTPopOutFiletree        lua require('litee.filetree').popout_to()")
     vim.cmd("command! LTCloseFiletree         lua require('litee.filetree').close_filetree()")
     vim.cmd("command! LTHideFiletree          lua require('litee.filetree').hide_filetree()")
     vim.cmd("command! LTNextFiletree          lua require('litee.filetree').navigation('n')")
