@@ -55,11 +55,8 @@ function M.filetree_handler()
 
     lib_panel.toggle_panel(global_state, true, false)
 
-    -- hop into previous window, call file_tracking, then hop back into 
-    -- newly opened tree
-    vim.api.nvim_set_current_win(cur_win)
+    -- run file_tracking to initially update filetree view.
     filetree_au.file_tracking()
-    vim.api.nvim_set_current_win(global_state["filetree"].win)
 end
 
 return M

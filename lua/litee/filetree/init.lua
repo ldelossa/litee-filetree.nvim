@@ -721,6 +721,8 @@ function M.setup(user_config)
                 vim.cmd(string.format("syn match %s /%s/", hl, icon_data.icon))
             end
         end
+        -- set scrolloff to 9999 to keep items centered
+        vim.api.nvim_win_set_option(vim.api.nvim_get_current_win(), "scrolloff", 9999)
     end
 
     -- merge in config
@@ -756,7 +758,7 @@ function M.setup(user_config)
     lib_panel.register_component("filetree", pre_window_create, post_window_create)
 
     -- will enable filetree file tracking with source code buffers.
-    vim.cmd([[au BufWinEnter,WinEnter * lua require('litee.filetree.autocmds').file_tracking()]])
+    vim.cmd([[au BufWinEnter,WinEnter,CursorHold * lua require('litee.filetree.autocmds').file_tracking()]])
 
     require('litee.filetree.commands').setup()
 end
