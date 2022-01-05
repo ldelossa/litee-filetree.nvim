@@ -164,7 +164,11 @@ M.expand_filetree = function()
         ctx.node.expanded = true
     end
     M.expand(ctx.node, ctx.state["filetree"])
-    lib_panel.toggle_panel(ctx.state, true, true)
+    lib_tree.write_tree(
+        ctx.state["filetree"].buf,
+        ctx.state["filetree"].tree,
+        marshal_func
+    )
     vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, ctx.cursor)
 end
 
@@ -598,37 +602,61 @@ M.filetree_ops = function(opt)
     end
     if opt == "touch" then
         M.touch(ctx.node, ctx.state["filetree"], function()
-            lib_panel.toggle_panel(ctx.state, true, false)
+            lib_tree.write_tree(
+                ctx.state["filetree"].buf,
+                ctx.state["filetree"].tree,
+                marshal_func
+            )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
     if opt == "mkdir" then
         M.mkdir(ctx.node, ctx.state["filetree"], function()
-            lib_panel.toggle_panel(ctx.state, true, false)
+            lib_tree.write_tree(
+                ctx.state["filetree"].buf,
+                ctx.state["filetree"].tree,
+                marshal_func
+            )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
     if opt == "rm" then
         M.rm(ctx.node, ctx.state["filetree"], function()
-            lib_panel.toggle_panel(ctx.state, true, false)
+            lib_tree.write_tree(
+                ctx.state["filetree"].buf,
+                ctx.state["filetree"].tree,
+                marshal_func
+            )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
     if opt == "rename" then
         M.rename(ctx.node, ctx.state["filetree"], function()
-            lib_panel.toggle_panel(ctx.state, true, false)
+            lib_tree.write_tree(
+                ctx.state["filetree"].buf,
+                ctx.state["filetree"].tree,
+                marshal_func
+            )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
     if opt == "mv" then
         M.mv_selected(ctx.node, ctx.state["filetree"], function()
-            lib_panel.toggle_panel(ctx.state, true, false)
+            lib_tree.write_tree(
+                ctx.state["filetree"].buf,
+                ctx.state["filetree"].tree,
+                marshal_func
+            )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
     if opt == "cp" then
         M.cp_selected(ctx.node, ctx.state["filetree"], function()
-            lib_panel.toggle_panel(ctx.state, true, false)
+            lib_tree.write_tree(
+                ctx.state["filetree"].buf,
+                ctx.state["filetree"].tree,
+                marshal_func
+            )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
