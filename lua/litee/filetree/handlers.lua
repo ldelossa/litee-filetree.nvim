@@ -75,14 +75,14 @@ function M.filetree_handler()
         -- we have no state, so open up the panel or popout to create
         -- a window and buffer.
         if config.on_open == "popout" then
-            lib_panel.popout_to("filetree", global_state)
+            lib_panel.popout_to("filetree", global_state, filetree_au.file_tracking())
         else
             lib_panel.toggle_panel(global_state, true, false)
+            -- run file_tracking to initially update filetree view.
+            filetree_au.file_tracking()
         end
     end
 
-    -- run file_tracking to initially update filetree view.
-    filetree_au.file_tracking()
 end
 
 return M
