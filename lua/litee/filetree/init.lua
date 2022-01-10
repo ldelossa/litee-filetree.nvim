@@ -7,11 +7,15 @@ local lib_notify        = require('litee.lib.notify')
 local lib_jumps         = require('litee.lib.jumps')
 local lib_navi          = require('litee.lib.navi')
 local lib_util_win      = require('litee.lib.util.window')
+local lib_path          = require('litee.lib.util.path')
 
 local filetree_buf      = require('litee.filetree.buffer')
+local filetree_au       = require('litee.filetree.autocmds')
 local filetree_help_buf = require('litee.filetree.help_buffer')
 local marshal_func      = require('litee.filetree.marshal').marshal_func
 local config            = require('litee.filetree.config').config
+local builder           = require('litee.filetree.builder')
+local handlers          = require('litee.filetree.handlers')
 
 local M = {}
 
@@ -90,7 +94,7 @@ function M.popout_to()
         -- open the panel again.
         lib_panel.toggle_panel(ctx.state, false, false, true)
     end
-    lib_panel.popout_to("filetree", ctx.state)
+    lib_panel.popout_to("filetree", ctx.state, filetree_au.file_tracking)
 end
 
 -- close_filetree will close the filetree ui in the current tab
@@ -187,7 +191,7 @@ M.expand_filetree = function()
     if not ctx.node.expanded then
         ctx.node.expanded = true
     end
-    M.expand(ctx.node, ctx.state["filetree"])
+    builder.expand(ctx.node, ctx.state["filetree"])
     lib_tree.write_tree(
         ctx.state["filetree"].buf,
         ctx.state["filetree"].tree,
@@ -273,32 +277,6 @@ function M.deselect(component_state)
     lib_notify.close_notify_popup()
 end
 
--- expand expands a filetree_item in the tree, refreshing the sub directory
--- incase new content exists.
-function M.expand(root, component_state)
-    root.expanded = true
-    local children = {}
-    local files = vim.fn.readdir(root.filetree_item.uri)
-    for _, child in ipairs(files) do
-        local uri = root.filetree_item.uri .. "/" .. child
-        local is_dir = vim.fn.isdirectory(uri)
-        local child_node = lib_tree_node.new_node(child, uri, 0)
-        child_node.filetree_item = {
-            uri = uri,
-            is_dir = (function() if is_dir == 0 then return false else return true end end)()
-        }
-        local range = {}
-        range["start"] = { line = 0, character = 0}
-        range["end"] = { line = 0, character = 0}
-        child_node.location = {
-            uri = "file://" .. child_node.filetree_item.uri,
-            range = range
-        }
-        table.insert(children, child_node)
-    end
-    lib_tree.add_node(component_state.tree, root, children)
-end
-
 -- touch will create a new file on the file system.
 -- if `node` is a directory the file will be created
 -- as a child of said directory.
@@ -329,7 +307,7 @@ function M.touch(node, component_state, cb)
 
         local t = lib_tree.get_tree(component_state.tree)
         local dpt = t.depth_table
-        M.build_filetree_recursive(t.root, component_state, dpt, parent_dir)
+        builder.build_filetree_recursive(t.root, component_state, dpt, parent_dir)
         cb()
     end
     vim.ui.input({prompt = "New file name: "},
@@ -369,7 +347,7 @@ function M.mkdir(node, component_state, cb)
 
         local t = lib_tree.get_tree(component_state.tree)
         local dpt = t.depth_table
-        M.build_filetree_recursive(t.root, component_state, dpt, parent_dir)
+        builder.build_filetree_recursive(t.root, component_state, dpt, parent_dir)
         cb()
     end
     vim.ui.input({prompt = "New directory name: "},
@@ -394,9 +372,108 @@ function M.rm(node, component_state, cb)
 
     local t = lib_tree.get_tree(component_state.tree)
     local dpt = t.depth_table
-    M.build_filetree_recursive(t.root, component_state, dpt)
+    builder.build_filetree_recursive(t.root, component_state, dpt)
 
     cb()
+end
+
+local function rename_file_helper(old_path, new_path)
+    -- holds info about buffers and their windows
+    -- which have `old_dir` in their paths.
+    local buffer_to_rename = nil
+    local wins = {}
+    -- check if we have a buffer open for old_path
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        local buffer_name = vim.api.nvim_buf_get_name(buf)
+        if buffer_name == old_path then
+            buffer_to_rename = buf
+        end
+    end
+    -- collect any windows which have this buf open
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_get_buf(win) == buffer_to_rename then
+            table.insert(wins, win)
+        end
+    end
+    -- callback to be ran after rename
+    return function()
+        -- swap wins over to new_path
+        for _, win in ipairs(wins) do
+            vim.api.nvim_set_current_win(win)
+            vim.cmd('silent edit ' .. new_path)
+        end
+        -- delete old buffer
+        vim.api.nvim_buf_delete(buffer_to_rename, {force=true})
+    end
+end
+
+-- rename_dir_help searches for any buffers and windows
+-- which have the old dir name opened, and returns a
+-- callback to be called to swap them over to the new
+-- paths.
+local function rename_dir_helper(old_dir, new_dir)
+    -- holds info about buffers and their windows
+    -- which have `old_dir` in their paths.
+    local buffers_to_rename = {}
+    -- collect all buffer ids which have a prefix match
+    -- of old_dir
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        local buffer_name = vim.api.nvim_buf_get_name(buf)
+        if lib_path.path_prefix_match(old_dir, buffer_name) then
+            table.insert(buffers_to_rename, {
+                buf = buf, path = buffer_name, wins = {}
+            })
+        end
+    end
+    -- collect all the windows for each buffer with our
+    -- old_dir prefix
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+        local win_buf = vim.api.nvim_win_get_buf(win)
+        for _, buf_info in ipairs(buffers_to_rename) do
+            if win_buf == buf_info.buf then
+                table.insert(buf_info.wins, win)
+            end
+        end
+    end
+    -- calback to be ran after rename occurs
+    return function()
+        -- create a temp empty buffer, all windows will be swapped
+        -- here first
+        local tmp_buf = vim.api.nvim_create_buf(true, true)
+
+        -- we need to set all windows which are a child of
+        -- old_dir to a tmp buf and then delete the
+        -- or else we get errors when
+        -- swapping them
+        for _, buf_info in ipairs(buffers_to_rename) do
+            local new_path = lib_path.swap_path_prefix(
+                buf_info.path,
+                old_dir,
+                new_dir
+            )
+            for _, win in ipairs(buf_info.wins) do
+                -- write the buffer out before swapping to
+                -- and deleting it to be safe.
+                vim.api.nvim_set_current_win(win)
+                vim.cmd('silent! w! ' .. new_path)
+                vim.api.nvim_win_set_buf(win, tmp_buf)
+            end
+            vim.api.nvim_buf_delete(buf_info.buf, {force = true})
+        end
+
+        -- swap all the tmp windows over to the new buf.
+        for _, buf_info in ipairs(buffers_to_rename) do
+            local new_path = lib_path.swap_path_prefix(
+                buf_info.path,
+                old_dir,
+                new_dir
+            )
+            for _, win in ipairs(buf_info.wins) do
+                vim.api.nvim_set_current_win(win)
+                vim.cmd('silent edit ' .. new_path)
+            end
+        end
+    end
 end
 
 -- rename will rename the file associated with the provided
@@ -419,26 +496,14 @@ function M.rename(node, component_state, cb)
         end
         local cur_tabpage = vim.api.nvim_get_current_tabpage()
         local path = node.filetree_item.uri
-        local parent_dir = M.resolve_parent_directory(node.filetree_item.uri)
+        local parent_dir = lib_path.parent_dir(lib_path.strip_file_prefix(path))
         local rename_path = parent_dir .. input
 
-        -- do a search to determine if the file being
-        -- rewritten has a buffer and any windows open
-        local original_buf = nil
-        local original_wins = {}
-        for _, win in ipairs(vim.api.nvim_list_wins()) do
-            if not vim.api.nvim_win_is_valid(win) then
-                goto continue
-            end
-            local buf = vim.api.nvim_win_get_buf(win)
-            local buf_name = vim.api.nvim_buf_get_name(buf)
-            if buf_name == path then
-                vim.api.nvim_set_current_win(win)
-                vim.cmd('silent write')
-                original_buf = buf
-                table.insert(original_wins, win)
-            end
-            ::continue::
+        local rename_cb = nil
+        if node.filetree_item.is_dir then
+            rename_cb = rename_dir_helper(path, rename_path)
+        else
+            rename_cb = rename_file_helper(path, rename_path)
         end
 
         if vim.fn.rename(path, rename_path) == -1 then
@@ -447,30 +512,17 @@ function M.rename(node, component_state, cb)
 
         local t = lib_tree.get_tree(component_state.tree)
         local dpt = t.depth_table
-        M.build_filetree_recursive(t.root, component_state, dpt)
+        builder.build_filetree_recursive(t.root, component_state, dpt)
         cb()
 
-        -- if we recorded any original windows swap them
-        -- over to the new renamed buffer.
-        for _, win in ipairs(original_wins) do
-            vim.api.nvim_set_current_win(win)
-            vim.cmd('silent edit ' .. rename_path)
-        end
-        -- if we have an original buffer then delete it.
-        if original_buf ~= nil then
-            vim.cmd('silent bdelete ' .. original_buf)
-        end
-        -- if the we swapped around some buffers in another
-        -- tab, vim will switch to that tab, so restore the original
-        -- tab page.
+        rename_cb()
+
         vim.api.nvim_set_current_tabpage(cur_tabpage)
-        lib_panel.toggle_panel(nil, true, false)
     end
     vim.ui.input({prompt = "Rename file to: "},
         rename
     )
 end
-
 
 -- mv_selected will move the currently selected node
 -- into the directory or parent directory of the incoming `node`.
@@ -500,7 +552,7 @@ function M.mv_selected(node, component_state, cb)
 
     local t = lib_tree.get_tree(component_state.tree)
     local dpt = t.depth_table
-    M.build_filetree_recursive(t.root, component_state, dpt)
+    builder.build_filetree_recursive(t.root, component_state, dpt)
     cb()
     M.deselect(component_state)
 end
@@ -563,43 +615,9 @@ function M.cp_selected(node, component_state, cb)
 
     local t = lib_tree.get_tree(component_state.tree)
     local dpt = t.depth_table
-    M.build_filetree_recursive(t.root, component_state, dpt)
+    builder.build_filetree_recursive(t.root, component_state, dpt)
     cb()
     M.deselect(component_state)
-end
-
-function M.build_filetree_recursive(root, component_state, old_dpt, expand_dir)
-    root.children = {}
-    local old_node = nil
-    if old_dpt ~= nil then
-        old_node = lib_tree.search_dpt(old_dpt, root.depth, root.key)
-    end
-    if old_node == nil then
-        -- just makes it easier to shove into the if clause below.
-        old_node = {}
-    end
-    local should_expand = false
-    -- if we are provided a directory to expand check
-    -- if the current root in the path to it and if so
-    -- mark it for expansion.
-    if expand_dir ~= nil and expand_dir ~= "" then
-        local idx = vim.fn.stridx(expand_dir, root.filetree_item.uri)
-        if idx ~= -1 then
-            should_expand = true
-        end
-    end
-    if
-        root.depth == 0 or
-        old_node.expanded or
-        should_expand
-    then
-        M.expand(root, component_state)
-    end
-    for _, child in ipairs(root.children) do
-        if child.filetree_item.is_dir then
-            M.build_filetree_recursive(child, component_state, old_dpt, expand_dir)
-        end
-    end
 end
 
 -- filetree_ops switches the provided op to the correct
@@ -684,6 +702,45 @@ M.filetree_ops = function(opt)
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
+end
+
+function M.cd_up()
+    local ctx = ui_req_ctx()
+    if
+        ctx.state == nil or
+        ctx.cursor == nil or
+        ctx.state["filetree"].tree == nil
+    then
+        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 1750, "error")
+        return
+    end
+    local t = lib_tree.get_tree(ctx.state["filetree"].tree)
+    if t.root == nil then
+        return
+    end
+    local parent_dir = lib_path.parent_dir(lib_path.strip_file_prefix(
+        t.root.location.uri
+    ))
+    handlers.filetree_handler(parent_dir)
+end
+
+function M.cd()
+    local ctx = ui_req_ctx()
+    if
+        ctx.state == nil or
+        ctx.cursor == nil or
+        ctx.state["filetree"].tree == nil or
+        ctx.node == nil
+    then
+        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 1750, "error")
+        return
+    end
+    if not ctx.node.filetree_item.is_dir then
+        lib_notify.notify_popup_with_timeout("Cannot 'cd' a regular file", 1750, "error")
+        return
+    end
+    local new_dir = lib_path.strip_file_prefix(ctx.node.location.uri)
+    handlers.filetree_handler(new_dir)
 end
 
 function M.navigation(dir)

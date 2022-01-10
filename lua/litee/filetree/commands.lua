@@ -25,6 +25,9 @@ function M.setup()
     vim.cmd("command! LTMoveFiletree          lua require('litee.filetree').filetree_ops('mv')")
     vim.cmd("command! LTMkdirFiletree         lua require('litee.filetree').filetree_ops('mkdir')")
     vim.cmd("command! LTRenameFiletree        lua require('litee.filetree').filetree_ops('rename')")
+    vim.cmd("command! LTChangeDirFiletree     lua require('litee.filetree').cd()")
+    vim.cmd("command! LTUpDirFiletree         lua require('litee.filetree').cd_up()")
+
 end
 
 return M

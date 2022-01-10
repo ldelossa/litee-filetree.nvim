@@ -47,6 +47,10 @@ function M._setup_buffer(name, buf, tab)
     vim.api.nvim_buf_set_keymap(buf, "n", "p", ":LTCopyFiletree<CR>", opts)
     vim.api.nvim_buf_set_keymap(buf, "n", "s", ":LTSelectFiletree<CR>", opts)
     vim.api.nvim_buf_set_keymap(buf, "n", "S", ":LTDeSelectFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "cd", ":LTChangeDirFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "cu", ":LTUpDirFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "S", ":LTDeSelectFiletree<CR>", opts)
+
     vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":LTClosePanelPopOut<CR>", opts)
     vim.api.nvim_buf_set_keymap(buf, "n", "?", ":lua require('litee.filetree').help(true)<CR>", opts)
 	if config.map_resize_keys then
