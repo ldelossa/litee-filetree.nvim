@@ -4,16 +4,16 @@ local lib_tree          = require('litee.lib.tree')
 local lib_tree_node     = require('litee.lib.tree.node')
 
 local config            = require('litee.filetree.config').config
-local filetree          = require('litee.filetree')
 local filetree_au       = require('litee.filetree.autocmds')
 local filetree_marshal  = require('litee.filetree.marshal')
+local builder            = require('litee.filetree.builder')
 
 
 local M = {}
 
 -- filetree_handler handles the initial request for creating a filetree
 -- for a particular tab.
-function M.filetree_handler()
+function M.filetree_handler(root_dir)
     local cur_win = vim.api.nvim_get_current_win()
     local cur_tabpage = vim.api.nvim_win_get_tabpage(cur_win)
     local state_was_nil = false
@@ -35,8 +35,10 @@ function M.filetree_handler()
     end
 
 
-    -- get the current working directory
     local cwd = vim.fn.getcwd()
+    if root_dir ~= nil or root_dir == "" then
+        cwd = root_dir
+    end
 
     -- create the root of our filetree
     local root = lib_tree_node.new_node(
@@ -53,7 +55,7 @@ function M.filetree_handler()
         range = range
     }
 
-    filetree.build_filetree_recursive(root, state, nil, "")
+    builder.build_filetree_recursive(root, state, nil, "")
 
     local global_state = lib_state.put_component_state(cur_tabpage, "filetree", state)
 

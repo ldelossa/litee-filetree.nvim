@@ -1,8 +1,9 @@
 local lib_tree          = require('litee.lib.tree')
 local lib_state         = require('litee.lib.state')
 local marshal_func      = require('litee.filetree.marshal').marshal_func
-local filetree          = require('litee.filetree')
 local lib_util_win      = require('litee.lib.util.window')
+
+local builder           = require('litee.filetree.builder')
 
 local M = {}
 
@@ -80,7 +81,7 @@ M.file_tracking = function()
     end
     local dpt = t.depth_table
     local target_uri = vim.fn.expand('%:p')
-    filetree.build_filetree_recursive(t.root, ctx.state["filetree"], dpt, target_uri)
+    builder.build_filetree_recursive(t.root, ctx.state["filetree"], dpt, target_uri)
     lib_tree.write_tree(
         ctx.state["filetree"].buf,
         ctx.state["filetree"].tree,
