@@ -365,16 +365,26 @@ function M.rm(node, component_state, cb)
         lib_notify.notify_popup_with_timeout("Cannot remove your project's root directory.", 1750, "error")
         return
     end
-
-    if vim.fn.delete(node.filetree_item.uri, 'rf') == -1 then
-        return
-    end
-
-    local t = lib_tree.get_tree(component_state.tree)
-    local dpt = t.depth_table
-    builder.build_filetree_recursive(t.root, component_state, dpt)
-
-    cb()
+    vim.ui.input({prompt = string.format("Delete %s? (y/n) ", node.filetree_item.uri)},function(input)
+        if input == nil then
+            return
+        end
+        if input == "y" then
+            if vim.fn.delete(node.filetree_item.uri, 'rf') == -1 then
+                lib_notify.notify_popup_with_timeout(string.format("Deletion failed for %s", node.filetree_item.uri, input), 1750, "error")
+                return
+            end
+            local t = lib_tree.get_tree(component_state.tree)
+            local dpt = t.depth_table
+            builder.build_filetree_recursive(t.root, component_state, dpt)
+            cb()
+            return
+        end
+        if input ~= "n" then
+            lib_notify.notify_popup_with_timeout(string.format("Did not understand input: %s, delete aborted.", input), 1750, "error")
+        end
+        cb()
+    end)
 end
 
 local function rename_file_helper(old_path, new_path)
