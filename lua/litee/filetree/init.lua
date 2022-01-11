@@ -721,6 +721,7 @@ function M.cd_up()
     local parent_dir = lib_path.parent_dir(lib_path.strip_file_prefix(
         t.root.location.uri
     ))
+    parent_dir = lib_path.strip_trailing_slash(parent_dir)
     handlers.filetree_handler(parent_dir)
 end
 
