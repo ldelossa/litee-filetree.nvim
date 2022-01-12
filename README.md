@@ -37,7 +37,7 @@ Plug:
 
 Call the setup function from anywhere you configure your plugins from.
 
-Configuration dictionary is explained in ./doc/litee.txt (:h litee-config)
+Configuration dictionary is explained in ./doc/litee-filetree.txt (:h litee-filetree-config)
 
 ```
 -- configure the litee.nvim library 
@@ -48,6 +48,18 @@ require('litee.filetree').setup({})
 
 ## Use it
 
-The Filetree can be opened with the command "LTOpenFiletree".
+First ensure you also have the litee.nvim (https://github.com/ldelossa/litee.nvim) 
+library installed.
 
-Check out the help file for full details.
+The Filetree UI can be opened with a call to ":LTOpenFiletree" or "LTPopOutFiletree", 
+the former being in the the `litee.nvim` panel and latter opened as a popout panel.
+
+Once the Filetree is open checkout out (h: litee-filetree-commands) to view available 
+actions you can take on a Filetree. You can also hit "?" while inside the Filetree
+to buffer local keymaps.
+
+Certain functionality like "moving" and "copying" require selecting a Filetree
+node first (defaults to s (select) and S (deselect) when inside a Filetree UI window.
+
+Commands which require a selection are noted in comments within the `litee-filetree-commands`
+section of the help file.

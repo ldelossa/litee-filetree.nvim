@@ -41,12 +41,19 @@ Usage                                                         *litee-filetree-us
 First ensure you also have the litee.nvim (https://github.com/ldelossa/litee.nvim) 
 library installed.
 
-The Filetree UI can be opened with a call to ":LTOpenFiletree"
+The Filetree UI can be opened with a call to ":LTOpenFiletree" or "LTPopOutFiletree", 
+the former being in the the `litee.nvim` panel and latter opened as a popout panel.
+
+Once the Filetree is open checkout out (h: litee-filetree-commands) to view available 
+actions you can take on a Filetree. You can also hit "?" while inside the Filetree
+to buffer local keymaps.
 
 Certain functionality like "moving" and "copying" require selecting a Filetree
 node first (defaults to s (select) and S (deselect) when inside a Filetree UI window.
 
-Commands can be used for this when not inside the Filetree UI window.
+Commands which require a selection are noted in comments within the `litee-filetree-commands`
+section of this help file.
+
 See `litee-filetree-commands`.
 
                                                             *litee-filetree-panel*
@@ -124,8 +131,10 @@ To toggle the panel open and close use the following command
     -- Remove the file or directory under the cursor.
     vim.cmd("command! LTRemoveFiletree        lua require('litee.filetree').filetree_ops('rm')")
     -- (Recursive) Copy the currently selected node to another location in the filetree.
+    -- This requires a selection made with LTSelectFiletree
     vim.cmd("command! LTCopyFiletree          lua require('litee.filetree').filetree_ops('cp')")
     -- (Recursive) Move the currently selected node to another location in the filetree.
+    -- This requires a selection made with LTSelectFiletree
     vim.cmd("command! LTMoveFiletree          lua require('litee.filetree').filetree_ops('mv')")
     -- Create a directory, if the node under the cursor is a directory the new directory
     -- will be created inside it. 
@@ -161,6 +170,13 @@ a litee-filetree.nvim window.
     vim.api.nvim_buf_set_keymap(buf, "n", "p", ":LTCopyFiletree<CR>", opts)
     vim.api.nvim_buf_set_keymap(buf, "n", "s", ":LTSelectFiletree<CR>", opts)
     vim.api.nvim_buf_set_keymap(buf, "n", "S", ":LTDeSelectFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "cd", ":LTChangeDirFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "cu", ":LTUpDirFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "S", ":LTDeSelectFiletree<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "i", ":LTDetailsFiletree<CR>", opts)
+
+    vim.api.nvim_buf_set_keymap(buf, "n", "<Esc>", ":LTClosePanelPopOut<CR>", opts)
+    vim.api.nvim_buf_set_keymap(buf, "n", "?", ":lua require('litee.filetree').help(true)<CR>", opts)
 
 ====================================================================================
 CONFIG                                                       *litee-filetree-config*
@@ -182,9 +198,6 @@ The config table is described below:
         jump_mode = "invoking",
         -- enables hiding the cursor inside the Filetree UI.
         hide_cursor = true,
-        -- sets a scrolloff when inside the Filetree UI so contents
-        -- are always centered.
-        scrolloff = true,
         -- Maps arrow keys to resizing the Filetree UI within the `litee.nvim` Panel.
         map_resize_keys = true,
         -- Disables all highlighting.
