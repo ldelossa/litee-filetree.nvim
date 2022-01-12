@@ -1,8 +1,8 @@
 local lib_state         = require('litee.lib.state')
-local lib_tree_node     = require('litee.lib.tree.node')
 local lib_tree          = require('litee.lib.tree')
 local lib_panel         = require('litee.lib.panel')
 local lib_util          = require('litee.lib.util')
+local lib_details       = require('litee.lib.details')
 local lib_notify        = require('litee.lib.notify')
 local lib_jumps         = require('litee.lib.jumps')
 local lib_navi          = require('litee.lib.navi')
@@ -13,6 +13,7 @@ local filetree_buf      = require('litee.filetree.buffer')
 local filetree_au       = require('litee.filetree.autocmds')
 local filetree_help_buf = require('litee.filetree.help_buffer')
 local marshal_func      = require('litee.filetree.marshal').marshal_func
+local details_func       = require('litee.filetree.details').details_func
 local config            = require('litee.filetree.config').config
 local builder           = require('litee.filetree.builder')
 local handlers          = require('litee.filetree.handlers')
@@ -146,7 +147,7 @@ function M.collapse_filetree()
         ctx.cursor == nil or
         ctx.state["filetree"].tree == nil
     then
-        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
         return
     end
     ctx.node.expanded = false
@@ -166,7 +167,7 @@ M.collapse_all_filetree = function()
         ctx.cursor == nil or
         ctx.state["filetree"].tree == nil
     then
-        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
         return
     end
     local t = lib_tree.get_tree(ctx.state["filetree"].tree)
@@ -185,7 +186,7 @@ M.expand_filetree = function()
         ctx.cursor == nil or
         ctx.state["filetree"].tree == nil
     then
-        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
         return
     end
     if not ctx.node.expanded then
@@ -207,7 +208,7 @@ M.jump_filetree = function(split)
         ctx.cursor == nil or
         ctx.state["filetree"].tree == nil
     then
-        lib_notify.notify_popup_with_timeout("Must perform an call hierarchy LSP request first", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Must perform an call hierarchy LSP request first", 7500, "error")
         return
     end
     local location = ctx.node.location
@@ -362,7 +363,7 @@ function M.rm(node, component_state, cb)
         return
     end
     if node.depth == 0 then
-        lib_notify.notify_popup_with_timeout("Cannot remove your project's root directory.", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Cannot remove your project's root directory.", 7500, "error")
         return
     end
     vim.ui.input({prompt = string.format("Delete %s? (y/n) ", node.filetree_item.uri)},function(input)
@@ -371,7 +372,7 @@ function M.rm(node, component_state, cb)
         end
         if input == "y" then
             if vim.fn.delete(node.filetree_item.uri, 'rf') == -1 then
-                lib_notify.notify_popup_with_timeout(string.format("Deletion failed for %s", node.filetree_item.uri, input), 1750, "error")
+                lib_notify.notify_popup_with_timeout(string.format("Deletion failed for %s", node.filetree_item.uri, input), 7500, "error")
                 return
             end
             local t = lib_tree.get_tree(component_state.tree)
@@ -381,7 +382,7 @@ function M.rm(node, component_state, cb)
             return
         end
         if input ~= "n" then
-            lib_notify.notify_popup_with_timeout(string.format("Did not understand input: %s, delete aborted.", input), 1750, "error")
+            lib_notify.notify_popup_with_timeout(string.format("Did not understand input: %s, delete aborted.", input), 7500, "error")
         end
         cb()
     end)
@@ -538,7 +539,7 @@ end
 -- into the directory or parent directory of the incoming `node`.
 function M.mv_selected(node, component_state, cb)
     if selected_node == nil then
-        lib_notify.notify_popup_with_timeout("No file selected.", 1750, "error")
+        lib_notify.notify_popup_with_timeout("No file selected.", 7500, "error")
         return
     end
     local parent_dir = ""
@@ -593,7 +594,7 @@ end
 -- performed.
 function M.cp_selected(node, component_state, cb)
     if selected_node == nil then
-        lib_notify.notify_popup_with_timeout("No file selected.", 1750, "error")
+        lib_notify.notify_popup_with_timeout("No file selected.", 7500, "error")
         return
     end
     -- the new directory we want to move `selected_node` to, including
@@ -712,6 +713,21 @@ M.filetree_ops = function(opt)
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
     end
+    if opt == "exec_perm" then
+        M.toggle_exec_perm(ctx.node)
+    end
+end
+
+function M.toggle_exec_perm(node)
+    local cur_perms = vim.fn.getfperm(node.filetree_item.uri)
+    print(cur_perms)
+    local exec_bit = vim.fn.strpart(cur_perms, 2, 1)
+    print(exec_bit)
+    if exec_bit == "x" then
+        vim.fn.system("chmod u-x " .. node.filetree_item.uri)
+    else
+        vim.fn.system("chmod u+x " .. node.filetree_item.uri)
+    end
 end
 
 function M.cd_up()
@@ -721,7 +737,7 @@ function M.cd_up()
         ctx.cursor == nil or
         ctx.state["filetree"].tree == nil
     then
-        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 7500, "error")
         return
     end
     local t = lib_tree.get_tree(ctx.state["filetree"].tree)
@@ -743,11 +759,11 @@ function M.cd()
         ctx.state["filetree"].tree == nil or
         ctx.node == nil
     then
-        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 7500, "error")
         return
     end
     if not ctx.node.filetree_item.is_dir then
-        lib_notify.notify_popup_with_timeout("Cannot 'cd' a regular file", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Cannot 'cd' a regular file", 7500, "error")
         return
     end
     local new_dir = lib_path.strip_file_prefix(ctx.node.location.uri)
@@ -767,6 +783,19 @@ function M.navigation(dir)
     vim.cmd("redraw!")
 end
 
+function M.details_filetree()
+    local ctx = ui_req_ctx()
+    if
+        ctx.state == nil or
+        ctx.cursor == nil or
+        ctx.state["filetree"].tree == nil
+    then
+        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 7500, "error")
+        return
+    end
+    lib_details.details_popup(ctx.state, ctx.node, details_func)
+end
+
 function M.on_tab_closed(tab)
     local state = lib_state.get_state[tab]
     if state == nil then
@@ -782,7 +811,7 @@ function M.help(display)
         ctx.cursor == nil or
         ctx.state["filetree"].tree == nil
     then
-        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Must open a filetree first with LTOpenFiletree command", 7500, "error")
         return
     end
     if display then
@@ -853,13 +882,13 @@ function M.setup(user_config)
     end
 
     if not pcall(require, "litee.lib") then
-        lib_notify.notify_popup_with_timeout("Cannot start litee-filetree without the litee.lib library.", 1750, "error")
+        lib_notify.notify_popup_with_timeout("Cannot start litee-filetree without the litee.lib library.", 7500, "error")
         return
     end
 
     if not pcall(require, "nvim-web-devicons") and config.use_web_devicons then
         lib_notify.notify_popup_with_timeout(
-            "Litee-filetree is configured to use nvim-web-devicons but the module is not loaded.", 1750, "error")
+            "Litee-filetree is configured to use nvim-web-devicons but the module is not loaded.", 7500, "error")
     else
         -- setup the dir icon and file type.
         local devicons = require("nvim-web-devicons")
@@ -874,11 +903,10 @@ function M.setup(user_config)
         devicons.set_up_highlights()
     end
 
-
     lib_panel.register_component("filetree", pre_window_create, post_window_create)
 
     -- will enable filetree file tracking with source code buffers.
-    vim.cmd([[au BufWinEnter,WinEnter,CursorHold * lua require('litee.filetree.autocmds').file_tracking()]])
+    vim.cmd([[au WinEnter,CursorHold,CursorHoldI * lua require('litee.filetree.autocmds').file_tracking()]])
 
     require('litee.filetree.commands').setup()
 end
