@@ -79,6 +79,9 @@ function M.open_to()
     then
         return
     end
+    if not lib_util_win.is_component_win(ctx.tab, vim.api.nvim_get_current_win()) then
+        ctx.state["filetree"].invoking_win = vim.api.nvim_get_current_win()
+    end
     lib_panel.open_to("filetree", ctx.state)
 end
 
@@ -94,6 +97,9 @@ function M.popout_to()
         -- popout_to will think the user had it opened and incorrectly
         -- open the panel again.
         lib_panel.toggle_panel(ctx.state, false, false, true)
+    end
+    if not lib_util_win.is_component_win(ctx.tab, vim.api.nvim_get_current_win()) then
+        ctx.state["filetree"].invoking_win = vim.api.nvim_get_current_win()
     end
     lib_panel.popout_to("filetree", ctx.state, filetree_au.file_tracking)
 end
