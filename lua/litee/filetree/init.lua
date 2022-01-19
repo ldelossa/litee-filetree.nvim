@@ -726,9 +726,7 @@ end
 
 function M.toggle_exec_perm(node)
     local cur_perms = vim.fn.getfperm(node.filetree_item.uri)
-    print(cur_perms)
     local exec_bit = vim.fn.strpart(cur_perms, 2, 1)
-    print(exec_bit)
     if exec_bit == "x" then
         vim.fn.system("chmod u-x " .. node.filetree_item.uri)
     else
