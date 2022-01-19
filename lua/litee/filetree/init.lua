@@ -420,7 +420,9 @@ local function rename_file_helper(old_path, new_path)
             vim.cmd('silent edit ' .. new_path)
         end
         -- delete old buffer
-        vim.api.nvim_buf_delete(buffer_to_rename, {force=true})
+        if buffer_to_rename ~= nil then
+            vim.api.nvim_buf_delete(buffer_to_rename, {force=true})
+        end
     end
 end
 
@@ -652,11 +654,11 @@ M.filetree_ops = function(opt)
     end
 
     if opt == "select" then
-        M.select(ctx.node, ctx.state)
+        M.select(ctx.node, ctx.state["filetree"])
         lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
     end
     if opt == "deselect" then
-        M.deselect(ctx.state)
+        M.deselect(ctx.state["filetree"])
         lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
     end
     if opt == "touch" then
@@ -726,7 +728,9 @@ end
 
 function M.toggle_exec_perm(node)
     local cur_perms = vim.fn.getfperm(node.filetree_item.uri)
+    print(cur_perms)
     local exec_bit = vim.fn.strpart(cur_perms, 2, 1)
+    print(exec_bit)
     if exec_bit == "x" then
         vim.fn.system("chmod u-x " .. node.filetree_item.uri)
     else
