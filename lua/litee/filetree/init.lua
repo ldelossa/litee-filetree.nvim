@@ -308,8 +308,34 @@ function M.touch(node, component_state, cb)
             parent_dir = M.resolve_parent_directory(node.filetree_item.uri)
             touch_path = parent_dir .. input
         end
-        if vim.fn.writefile({},touch_path) == -1 then
-            return
+
+        local perms = vim.fn.getfperm(touch_path)
+        if perms ~= "" then
+            vim.ui.input(
+            {
+                prompt = string.format("\r%s exists, rename or overwrite (empty). Provide no input to cancel operation: ", touch_path),
+                default = input,
+            },
+            function(new_basename)
+                if new_basename == nil or new_basename == "" then
+                    return
+                end
+                if node.filetree_item.is_dir then
+                    parent_dir = node.filetree_item.uri .. '/'
+                    touch_path = parent_dir .. new_basename
+                    node.expanded = true
+                else
+                    parent_dir = M.resolve_parent_directory(node.filetree_item.uri)
+                    touch_path = parent_dir .. new_basename
+                end
+                if vim.fn.writefile({},touch_path) == -1 then
+                    return
+                end
+            end)
+        else
+            if vim.fn.writefile({},touch_path) == -1 then
+                return
+            end
         end
 
         local t = lib_tree.get_tree(component_state.tree)
@@ -348,8 +374,31 @@ function M.mkdir(node, component_state, cb)
             parent_dir = M.resolve_parent_directory(node.filetree_item.uri)
             mkdir_path = parent_dir .. input
         end
-        if vim.fn.mkdir(mkdir_path) == -1 then
-            return
+
+        local perms = vim.fn.getfperm(mkdir_path)
+        if perms ~= "" then
+            vim.ui.input(
+            {
+                prompt = string.format("\r%s exists, rename or operation will have no effect: ", mkdir_path),
+                default = input,
+            },
+            function(new_basename)
+                if new_basename == nil or new_basename == "" then
+                    return
+                end
+                if node.filetree_item.is_dir then
+                    parent_dir = node.filetree_item.uri .. '/'
+                    mkdir_path = parent_dir .. new_basename
+                    node.expanded = true
+                else
+                    parent_dir = M.resolve_parent_directory(node.filetree_item.uri)
+                    mkdir_path = parent_dir .. new_basename
+                end
+            end)
+        else
+            if vim.fn.mkdir(mkdir_path) == -1 then
+                return
+            end
         end
 
         local t = lib_tree.get_tree(component_state.tree)
@@ -518,6 +567,21 @@ function M.rename(node, component_state, cb)
         local parent_dir = lib_path.parent_dir(lib_path.strip_file_prefix(path))
         local rename_path = parent_dir .. input
 
+        local perms = vim.fn.getfperm(rename_path)
+        if perms ~= "" then
+            vim.ui.input(
+            {
+                prompt = string.format("\r%s exists, pick a new name or operation will be canceled: ", rename_path),
+                default = input,
+            },
+            function(new_basename)
+                if new_basename == nil or new_basename == "" then
+                    return
+                end
+                rename_path = parent_dir .. new_basename
+            end)
+        end
+
         local rename_cb = nil
         if node.filetree_item.is_dir then
             rename_cb = rename_dir_helper(path, rename_path)
@@ -561,7 +625,24 @@ function M.mv_selected(node, component_state, cb)
 
     local from = selected_node.filetree_item.uri
     local to = parent_dir .. selected_file
-    vim.fn.rename(from, to)
+
+    local perms = vim.fn.getfperm(to)
+    if perms ~= "" then
+        vim.ui.input(
+        {
+            prompt = string.format("\r%s exists, rename it or operation will cancel. Provide no input to cancel operation: ", to),
+            default = selected_file,
+        },
+        function(new_basename)
+            if new_basename == nil or new_basename == "" then
+                return
+            end
+            to = parent_dir .. new_basename
+            vim.fn.rename(from, to)
+        end)
+    else
+        vim.fn.rename(from, to)
+    end
 
     -- if node is a dir expand it, since we just
     -- created something in it
@@ -591,7 +672,24 @@ local function recursive_cp(existing_dir, move_to)
         else
             local basename = M.resolve_file_name(to_check)
             local to_create = move_to .. '/' .. basename
-            vim.fn.writefile(vim.fn.readfile(to_check), to_create)
+            local perms = vim.fn.getfperm(to_create)
+            if perms ~= "" then
+                vim.ui.input(
+                {
+                    prompt = string.format("\r%s exists inside %s, rename it or overwrite. Provide no input to cancel operation: ", basename, move_to),
+                    default = basename,
+
+                },
+                function(new_basename)
+                    if new_basename == nil or new_basename == "" then
+                        return
+                    end
+                    to_create = move_to .. '/' .. new_basename
+                    vim.fn.writefile(vim.fn.readfile(to_check), to_create)
+                end)
+            else
+                vim.fn.writefile(vim.fn.readfile(to_check), to_create)
+            end
         end
     end
 end
@@ -619,8 +717,25 @@ function M.cp_selected(node, component_state, cb)
         local fname = M.resolve_file_name(selected_node.filetree_item.uri)
         local from = selected_node.filetree_item.uri
         local to = move_to .. fname
-        if vim.fn.writefile(vim.fn.readfile(from), to) == -1 then
-            return
+        local perms = vim.fn.getfperm(to)
+        if perms ~= "" then
+            vim.ui.input(
+            {
+                prompt = string.format("\r%s exists, rename it or overwrite. Provide no input to cancel operation: ", fname),
+                default = fname,
+
+            },
+            function(new_basename)
+                if new_basename == nil or new_basename == "" then
+                    return
+                end
+                to = move_to .. new_basename
+                vim.fn.writefile(vim.fn.readfile(from), to)
+            end)
+        else
+            if vim.fn.writefile(vim.fn.readfile(from), to) == -1 then
+                return
+            end
         end
     else
         recursive_cp(selected_node.filetree_item.uri, move_to)
