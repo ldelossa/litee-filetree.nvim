@@ -983,9 +983,6 @@ function M.setup(user_config)
     end
 
     local function post_window_create()
-        if not config.no_hls then
-            lib_util_win.set_tree_highlights()
-        end
         if config.use_web_devicons then
             local devicons = require("nvim-web-devicons")
             for _, icon_data in pairs(devicons.get_icons()) do
