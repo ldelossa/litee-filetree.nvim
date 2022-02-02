@@ -13,7 +13,7 @@ local filetree_buf      = require('litee.filetree.buffer')
 local filetree_au       = require('litee.filetree.autocmds')
 local filetree_help_buf = require('litee.filetree.help_buffer')
 local marshal_func      = require('litee.filetree.marshal').marshal_func
-local details_func       = require('litee.filetree.details').details_func
+local details_func      = require('litee.filetree.details').details_func
 local config            = require('litee.filetree.config').config
 local builder           = require('litee.filetree.builder')
 local handlers          = require('litee.filetree.handlers')
@@ -843,9 +843,7 @@ end
 
 function M.toggle_exec_perm(node)
     local cur_perms = vim.fn.getfperm(node.filetree_item.uri)
-    print(cur_perms)
     local exec_bit = vim.fn.strpart(cur_perms, 2, 1)
-    print(exec_bit)
     if exec_bit == "x" then
         vim.fn.system("chmod u-x " .. node.filetree_item.uri)
     else
@@ -957,6 +955,24 @@ function M.dump_node()
     lib_tree.dump_tree(ctx.node)
 end
 
+local function merge_configs(user_config)
+    -- merge keymaps
+    if user_config.keymaps ~= nil then
+        for k, v in pairs(user_config.keymaps) do
+            config.keymaps[k] = v
+        end
+    end
+
+    -- merge top levels
+    for k, v in pairs(user_config) do
+        if k == "keymaps" then
+            goto continue
+        end
+        config[k] = v
+        ::continue::
+    end
+end
+
 function M.setup(user_config)
     local function pre_window_create(state)
         local tab = vim.api.nvim_get_current_tabpage()
@@ -996,9 +1012,7 @@ function M.setup(user_config)
 
     -- merge in config
     if user_config ~= nil then
-        for key, val in pairs(user_config) do
-            config[key] = val
-        end
+        merge_configs(user_config)
     end
 
     if not pcall(require, "litee.lib") then
