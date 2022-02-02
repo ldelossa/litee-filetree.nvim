@@ -211,7 +211,10 @@ The config table is described below:
         relative_filetree_entries = false,
         -- Determines if initial creation of a filetree opens in the
         -- Panel or in a Popout window. Options are "panel" or "popout"
-        on_open = "popout"
+        on_open = "popout",
+        -- Highlight group used to indicate the currently opened
+        -- file.
+        current_file_hl = "LTCurrentFileFiletree"
     }
 
 Any overrides to this table can be supplied in the setup function:

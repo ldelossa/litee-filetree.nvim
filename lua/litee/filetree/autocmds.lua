@@ -4,6 +4,7 @@ local marshal_func      = require('litee.filetree.marshal').marshal_func
 local lib_util_win      = require('litee.lib.util.window')
 
 local builder           = require('litee.filetree.builder')
+local config            = require('litee.filetree.config').config
 
 local M = {}
 
@@ -106,7 +107,7 @@ M.file_tracking = function()
             M.current_file_hl_group = vim.api.nvim_buf_add_highlight(
                 ctx.state["filetree"].buf,
                 0,
-                "CursorLine",
+                config.current_file_hl,
                 buf_line-1,
                 0,
                 -1
