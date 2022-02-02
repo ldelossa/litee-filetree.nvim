@@ -1,3 +1,5 @@
+local config            = require('litee.filetree.config').config
+
 local M = {}
 -- _setup_help_buffer performs an idempotent creation
 -- of the filetree help buffer
@@ -18,34 +20,46 @@ function M._setup_help_buffer(help_buf_handle)
             return
         end
         help_buf_handle = buf
-        local lines = {
-            "FILETREE HELP:",
-            "press '?' to close",
-            "",
-            "KEYMAP:",
-            "Global---------------------------------------------------------------------------------------------",
-            "zo                 - expand a symbol",
-            "zc                 - collapse a symbol",
-            "zM                 - collapse all symbols",
-            "return             - jump to symbol",
-            "s                  - jump to symbol in a new split",
-            "v                  - jump to symbol in a new vsplit",
-            "t                  - jump to symbol in a new tab",
-            "d                  - show symbol details",
-            "H                  - hide this element from the panel, will appear again on toggle",
-            "x                  - remove this element from the panel, will not appear until another LSP request",
-            "Up,Down,Right,Left - resize the panel",
-            "i                  - show hover info for symbol",
-            "File Explorer.......................................................................................",
-            "n                  - create a new file",
-            "D                  - delete a new file or directory",
-            "d                  - create a directory",
-            "r                  - rename a file or directory",
-            "m                  - move a file or directory",
-            "p                  - copy a file or directory",
-            "s                  - select a file to perform an above action on",
-            "S                  - deselect a selected file"
-        }
+        local lines = {}
+        if not config.disable_keymaps then
+            lines = {
+                "FILETREE HELP:",
+                "press '?' to close",
+                "",
+                "KEYMAP:",
+                config.keymaps.expand .. " - expand a directory",
+                config.keymaps.collapse .. " - collapse a directory",
+                config.keymaps.collapse_all .. " - collapse all directories",
+                config.keymaps.jump .. " - jump to file in last used window",
+                config.keymaps.jump_split .. " - jump to window in a new split",
+                config.keymaps.jump_vsplit .. " - jump to window in a new vertical split",
+                config.keymaps.jump_tab .. " - jump to window in a new tab",
+                config.keymaps.hide .. " - hide the filetree component",
+                config.keymaps.close .. " - close the filetree component",
+                config.keymaps.new_file .. " - create a new regular file",
+                config.keymaps.delete_file .. " - delete a file or directory (recursively)",
+                config.keymaps.new_dir .. " - create a new directory",
+                config.keymaps.rename_file .. " - rename a file",
+                config.keymaps.move_file .. " - (recursively) move a file or directory",
+                config.keymaps.copy_file .. " - (recursively) copy a file or directory",
+                config.keymaps.select_file .. " - select a file for copy or move",
+                config.keymaps.deselect_file .. " - deselect a selected file",
+                config.keymaps.change_dir .. " - change the current directory to one under the cursor",
+                config.keymaps.up_dir .. " - move up one directory",
+                config.keymaps.file_details .. " - show file details",
+                config.keymaps.toggle_exec_perm .. " - toggle the user exec permissions for a file",
+                config.keymaps.close_panel_pop_out .. " - close the popout panel when filetree is popped out",
+                config.keymaps.help .. " - show help"
+            }
+        else
+            lines = {
+                "FILETREE HELP:",
+                "press '?' to close",
+                "",
+                "No KEYMAP set:",
+            }
+        end
+
         vim.api.nvim_buf_set_lines(help_buf_handle, 0, #lines, false, lines)
     end
     -- set buf options
