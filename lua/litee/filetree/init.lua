@@ -147,19 +147,19 @@ function M.hide_filetree()
 end
 
 function M.collapse_filetree(extrn_ctx)
-    local ctx = ui_req_ctx()
-    if
-        ctx.state == nil or
-        ctx.cursor == nil or
-        ctx.state["filetree"].tree == nil
-    then
-        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
-        return
-    end
     -- allow passing an external ctx to support
     -- "config.expand_dir_on_jump"
-    if extrn_ctx ~= nil then
-        ctx = extrn_ctx
+    local ctx = extrn_ctx
+    if ctx == nil then
+        ctx = ui_req_ctx()
+        if
+            ctx.state == nil or
+            ctx.cursor == nil or
+            ctx.state["filetree"].tree == nil
+        then
+            lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
+            return
+        end
     end
     ctx.node.expanded = false
     lib_tree.remove_subtree(ctx.state["filetree"].tree, ctx.node, true)
@@ -191,19 +191,19 @@ M.collapse_all_filetree = function()
 end
 
 M.expand_filetree = function(extrn_ctx)
-    local ctx = ui_req_ctx()
-    if
-        ctx.state == nil or
-        ctx.cursor == nil or
-        ctx.state["filetree"].tree == nil
-    then
-        lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
-        return
-    end
     -- allow passing an external ctx to support
     -- "config.expand_dir_on_jump"
-    if extrn_ctx ~= nil then
-        ctx = extrn_ctx
+    local ctx = extrn_ctx
+    if ctx == nil then
+        ctx = ui_req_ctx()
+        if
+            ctx.state == nil or
+            ctx.cursor == nil or
+            ctx.state["filetree"].tree == nil
+        then
+            lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
+            return
+        end
     end
     if not ctx.node.expanded then
         ctx.node.expanded = true
