@@ -215,6 +215,10 @@ The config table is described below:
         -- Highlight group used to indicate the currently opened
         -- file.
         current_file_hl = "LTCurrentFileFiletree",
+        -- When true issuing a "jump" on a directory expands
+        -- or closes the directory instead of opening it
+        -- like a buffer.
+        expand_dir_on_jump = true,
         -- If set to true, disables all buffer keymaps.
         disable_keymaps = false,
         -- The default keymaps. Users can provide overrides

@@ -146,7 +146,7 @@ function M.hide_filetree()
     end
 end
 
-function M.collapse_filetree()
+function M.collapse_filetree(extrn_ctx)
     local ctx = ui_req_ctx()
     if
         ctx.state == nil or
@@ -155,6 +155,11 @@ function M.collapse_filetree()
     then
         lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
         return
+    end
+    -- allow passing an external ctx to support
+    -- "config.expand_dir_on_jump"
+    if extrn_ctx ~= nil then
+        ctx = extrn_ctx
     end
     ctx.node.expanded = false
     lib_tree.remove_subtree(ctx.state["filetree"].tree, ctx.node, true)
@@ -185,7 +190,7 @@ M.collapse_all_filetree = function()
     )
 end
 
-M.expand_filetree = function()
+M.expand_filetree = function(extrn_ctx)
     local ctx = ui_req_ctx()
     if
         ctx.state == nil or
@@ -194,6 +199,11 @@ M.expand_filetree = function()
     then
         lib_notify.notify_popup_with_timeout("Must open the file explorer first", 7500, "error")
         return
+    end
+    -- allow passing an external ctx to support
+    -- "config.expand_dir_on_jump"
+    if extrn_ctx ~= nil then
+        ctx = extrn_ctx
     end
     if not ctx.node.expanded then
         ctx.node.expanded = true
@@ -217,6 +227,20 @@ M.jump_filetree = function(split)
         lib_notify.notify_popup_with_timeout("Must perform an call hierarchy LSP request first", 7500, "error")
         return
     end
+
+    -- this options hijacks a jump command if the
+    -- node is a dir and expands it instead.
+    if config.expand_dir_on_jump then
+        if ctx.node.filetree_item.is_dir and not ctx.node.expanded then
+            M.expand_filetree(ctx)
+            return
+        elseif ctx.node.filetree_item.is_dir and ctx.node.expanded then
+            M.collapse_filetree(ctx)
+            return
+        end
+    end
+
+
     local location = ctx.node.location
     if location == nil or location.range.start.line == -1 then
         return

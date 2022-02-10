@@ -9,6 +9,7 @@ M.config = {
     relative_filetree_entries = false,
     on_open = "popup",
     current_file_hl = "LTCurrentFileFiletree",
+    expand_dir_on_jump = true,
     disable_keymaps = false,
     keymaps = {
         expand = "zo",
