@@ -17,6 +17,7 @@ local details_func      = require('litee.filetree.details').details_func
 local config            = require('litee.filetree.config').config
 local builder           = require('litee.filetree.builder')
 local handlers          = require('litee.filetree.handlers')
+local autocmd           = require('litee.filetree.autocmds')
 
 local M = {}
 
@@ -168,6 +169,13 @@ function M.collapse_filetree(extrn_ctx)
         ctx.state["filetree"].tree,
         marshal_func
     )
+
+    -- call filetracking to set LTCurrentFileFiletree highlight
+    local cur_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(ctx.state["filetree"].invoking_win)
+    autocmd.file_tracking()
+    vim.api.nvim_set_current_win(cur_win)
+
     vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, ctx.cursor)
 end
 
@@ -214,6 +222,13 @@ M.expand_filetree = function(extrn_ctx)
         ctx.state["filetree"].tree,
         marshal_func
     )
+
+    -- call filetracking to set LTCurrentFileFiletree highlight
+    local cur_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(ctx.state["filetree"].invoking_win)
+    autocmd.file_tracking()
+    vim.api.nvim_set_current_win(cur_win)
+
     vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, ctx.cursor)
 end
 
@@ -360,6 +375,13 @@ function M.touch(node, component_state, cb)
             if vim.fn.writefile({},touch_path) == -1 then
                 return
             end
+        end
+
+        -- open the new file so filetracking autocmd is ran
+        if config.open_new_file then
+            vim.api.nvim_set_current_win(component_state.invoking_win)
+            vim.cmd("edit " .. touch_path)
+            autocmd.file_tracking()
         end
 
         local t = lib_tree.get_tree(component_state.tree)

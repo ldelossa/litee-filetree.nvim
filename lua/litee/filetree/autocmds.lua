@@ -60,7 +60,7 @@ local function ui_req_ctx()
     }
 end
 
-M.current_file_hl_group = nil
+M.current_file_hl_ns = nil
 
 -- file_tracking is used to keep the filetree up to date
 -- with the focused source file buffer.
@@ -77,10 +77,10 @@ M.file_tracking = function()
     then
         return
     end
-    if M.current_file_hl_group ~= nil then
+    if M.current_file_hl_ns ~= nil then
         vim.api.nvim_buf_clear_namespace(
             ctx.state["filetree"].buf,
-            M.current_file_hl_group,
+            M.current_file_hl_ns,
             0,
             -1
         )
@@ -102,9 +102,7 @@ M.file_tracking = function()
     for buf_line, node in pairs(t.buf_line_map) do
         if node.key == target_uri then
             vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, {buf_line, 0})
-            -- set a hl that's same color as cursor line so you can always find current
-            -- file.
-            M.current_file_hl_group = vim.api.nvim_buf_add_highlight(
+            M.current_file_hl_ns = vim.api.nvim_buf_add_highlight(
                 ctx.state["filetree"].buf,
                 0,
                 config.current_file_hl,

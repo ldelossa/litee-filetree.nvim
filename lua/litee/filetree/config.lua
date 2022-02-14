@@ -10,6 +10,7 @@ M.config = {
     on_open = "popup",
     current_file_hl = "LTCurrentFileFiletree",
     expand_dir_on_jump = true,
+    open_new_file = true,
     disable_keymaps = false,
     keymaps = {
         expand = "zo",
