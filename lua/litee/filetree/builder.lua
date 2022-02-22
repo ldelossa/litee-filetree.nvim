@@ -44,7 +44,11 @@ function M.build_filetree_recursive(root, component_state, old_dpt, expand_dir)
     -- if the current root in the path to it and if so
     -- mark it for expansion.
     if expand_dir ~= nil and expand_dir ~= "" then
-        local idx = vim.fn.stridx(expand_dir, root.filetree_item.uri)
+        -- adding a forward slash is necessary to correctly handle prefixes
+        -- matches, for example a directory 'x/y/z/v2alpha1' would match
+        -- the directory 'x/y/z/v2' if we do not add the trailing slash to the
+        -- prefix check
+        local idx = vim.fn.stridx(expand_dir, root.filetree_item.uri .. "/")
         if idx ~= -1 then
             should_expand = true
         end
