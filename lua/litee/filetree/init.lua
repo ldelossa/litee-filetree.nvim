@@ -102,7 +102,13 @@ function M.popout_to()
     if not lib_util_win.is_component_win(ctx.tab, vim.api.nvim_get_current_win()) then
         ctx.state["filetree"].invoking_win = vim.api.nvim_get_current_win()
     end
-    lib_panel.popout_to("filetree", ctx.state, filetree_au.file_tracking)
+    lib_panel.popout_to("filetree", ctx.state)
+    
+    -- do this so filetree ui snaps to the current file at time of request.
+    local cur_win = vim.api.nvim_get_current_win()
+    vim.api.nvim_set_current_win(ctx.state["filetree"].invoking_win)
+    autocmd.file_tracking()
+    vim.api.nvim_set_current_win(cur_win)
 end
 
 -- close_filetree will close the filetree ui in the current tab
