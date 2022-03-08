@@ -103,7 +103,7 @@ function M.popout_to()
         ctx.state["filetree"].invoking_win = vim.api.nvim_get_current_win()
     end
     lib_panel.popout_to("filetree", ctx.state)
-    
+
     -- do this so filetree ui snaps to the current file at time of request.
     local cur_win = vim.api.nvim_get_current_win()
     vim.api.nvim_set_current_win(ctx.state["filetree"].invoking_win)
@@ -790,6 +790,22 @@ function M.cp_selected(node, component_state, cb)
             end
         end
     else
+        local fail = false
+        if vim.fn.isdirectory(move_to .. lib_path.basename(selected_node.filetree_item.uri)) == 1 then
+            vim.ui.input(
+            {
+                prompt = string.format("\r%s/ exists in %s, merge? (y/n): ", lib_path.basename(selected_node.filetree_item.uri), move_to),
+            },
+            function(b)
+                if b == nil or b ~= "y" then
+                    fail = true
+                    return
+                end
+            end)
+        end
+        if fail then
+            return
+        end
         recursive_cp(selected_node.filetree_item.uri, move_to)
     end
 
