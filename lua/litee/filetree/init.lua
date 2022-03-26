@@ -176,12 +176,6 @@ function M.collapse_filetree(extrn_ctx)
         marshal_func
     )
 
-    -- call filetracking to set LTCurrentFileFiletree highlight
-    local cur_win = vim.api.nvim_get_current_win()
-    vim.api.nvim_set_current_win(ctx.state["filetree"].invoking_win)
-    autocmd.file_tracking()
-    vim.api.nvim_set_current_win(cur_win)
-
     vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, ctx.cursor)
 end
 
@@ -230,10 +224,12 @@ M.expand_filetree = function(extrn_ctx)
     )
 
     -- call filetracking to set LTCurrentFileFiletree highlight
-    local cur_win = vim.api.nvim_get_current_win()
-    vim.api.nvim_set_current_win(ctx.state["filetree"].invoking_win)
-    autocmd.file_tracking()
-    vim.api.nvim_set_current_win(cur_win)
+
+    -- local invoking_win = ctx.state["filetree"].invoking_win
+    -- local invoking_buf = vim.api.nvim_win_get_buf(invoking_win)
+    -- local buf_name = vim.api.nvim_buf_get_name(invoking_buf)
+    -- autocmd.file_tracking(true, buf_name)
+    -- vim.api.nvim_set_current_win(cur_win)
 
     vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, ctx.cursor)
 end

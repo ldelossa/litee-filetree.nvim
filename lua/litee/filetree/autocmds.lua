@@ -64,7 +64,7 @@ M.current_file_hl_ns = nil
 
 -- file_tracking is used to keep the filetree up to date
 -- with the focused source file buffer.
-M.file_tracking = function()
+M.file_tracking = function(only_hightlight, target)
     local ctx = ui_req_ctx()
     if ctx.state == nil then
         return
@@ -73,10 +73,18 @@ M.file_tracking = function()
         ctx.state["filetree"] == nil or
         ctx.state["filetree"].win == nil or
         not vim.api.nvim_win_is_valid(ctx.state["filetree"].win)
-        or lib_util_win.inside_component_win()
     then
         return
     end
+
+    -- confirm we are not inside any other litee component window.
+    -- this aucmd *should* run inside the filetree component window
+    local in_filetree = (ctx.win == ctx.state["filetree"].win)
+    local in_component = lib_util_win.inside_component_win()
+    if in_component and not in_filetree then
+        return
+    end
+
     if M.current_file_hl_ns ~= nil then
         vim.api.nvim_buf_clear_namespace(
             ctx.state["filetree"].buf,
@@ -90,18 +98,36 @@ M.file_tracking = function()
     if t == nil then
         return
     end
+
     local dpt = t.depth_table
+
+    -- if we are not in filetree window set the target uri to the current buf
+    -- if we are set it to the buf of the invoking window
     local target_uri = vim.fn.expand('%:p')
-    builder.build_filetree_recursive(t.root, ctx.state["filetree"], dpt, target_uri)
-    lib_tree.write_tree(
-        ctx.state["filetree"].buf,
-        ctx.state["filetree"].tree,
-        marshal_func
-    )
+    if in_filetree then
+        local invoking_win = ctx.state["filetree"].invoking_win
+        local invoking_buf = vim.api.nvim_win_get_buf(invoking_win)
+        target_uri = vim.api.nvim_buf_get_name(invoking_buf)
+    end
+
+    -- only build a new tree if we are not inside the filetree component,
+    -- otherwise just highlight the target_uri if its available
+    if not in_filetree then
+        builder.build_filetree_recursive(t.root, ctx.state["filetree"], dpt, target_uri)
+        lib_tree.write_tree(
+            ctx.state["filetree"].buf,
+            ctx.state["filetree"].tree,
+            marshal_func
+        )
+    end
 
     for buf_line, node in pairs(t.buf_line_map) do
         if node.key == target_uri then
-            vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, {buf_line, 0})
+            -- would reset the cursor in an already built filetree which we dont
+            -- want, instead just do the highlight with no jumping.
+            if not in_filetree then
+                vim.api.nvim_win_set_cursor(ctx.state["filetree"].win, {buf_line, 0})
+            end
             M.current_file_hl_ns = vim.api.nvim_buf_add_highlight(
                 ctx.state["filetree"].buf,
                 0,
