@@ -72,7 +72,9 @@ M.file_tracking = function(only_hightlight, target)
     if
         ctx.state["filetree"] == nil or
         ctx.state["filetree"].win == nil or
-        not vim.api.nvim_win_is_valid(ctx.state["filetree"].win)
+        not vim.api.nvim_win_is_valid(ctx.state["filetree"].win) or
+        ctx.state["filetree"].invoking_win == nil or
+        not vim.api.nvim_win_is_valid(ctx.state["filetree"].invoking_win)
     then
         return
     end
