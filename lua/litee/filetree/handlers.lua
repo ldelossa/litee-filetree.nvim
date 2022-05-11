@@ -23,7 +23,7 @@ function M.filetree_handler(root_dir)
         state_was_nil = true
         state = {}
         -- create new tree, throwing old one out if exists
-        if state.filetree_handle ~= nil then
+        if state.tree ~= nil then
             lib_tree.remove_tree(state.tree)
         end
         state.tree = lib_tree.new_tree("filetree")
