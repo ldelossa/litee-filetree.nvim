@@ -28,9 +28,19 @@ keeping its appropriate place in a collapsible panel.
 ## Get it
 
 Plug:
+```vim
+Plug 'kyazdani42/nvim-web-devicons'
+Plug 'ldelossa/litee.nvim'
+Plug 'ldelossa/litee-filetree.nvim'
 ```
- Plug 'ldelossa/litee.nvim'
- Plug 'ldelossa/litee-filetree.nvim'
+
+Note: This plugin needs [`nvim-web-devicons`](https://github.com/kyazdani42/nvim-web-devicons)
+by default. If you don't need it, the recommended setup is:
+```lua
+require'litee.filetree'.setup{
+  use_web_devicons = false,
+  icon_set_custom = {dir = "dir:"},
+}
 ```
 
 ## Set it

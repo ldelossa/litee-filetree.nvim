@@ -1,7 +1,5 @@
 local config    = require('litee.filetree.config').config
 local lib_util  = require('litee.lib.util')
-local lib_icons = require('litee.lib.icons')
-local devicons  = require("nvim-web-devicons")
 
 local M = {}
 
@@ -17,10 +15,7 @@ end
 -- values for marshalling a filetree node into a buffer
 -- line.
 function M.marshal_func(node)
-    local icon_set = nil
-    if config.icon_set ~= nil then
-        icon_set = lib_icons[config.icon_set]
-    end
+    local icon_set = require('litee.filetree').icon_set
     local name, detail, icon = "", "", ""
 
     name = node.name
@@ -42,15 +37,23 @@ function M.marshal_func(node)
     -- children so leave off the expand guide to display
     -- a leaf without having to evaluate this node further.
     if not node.filetree_item.is_dir then
+        local node_name = node.name
         if config.use_web_devicons then
-            icon = devicons.get_icon(node.name, nil, {default=true})
+            icon = require("nvim-web-devicons").get_icon(node_name, nil, {default=true})
+        else
+            -- Usually `node_name` is the name of a file.
+            -- Any the user actually don't need to provide a `node_name` icon.
+            icon = icon_set[node_name] or ""
         end
         local expand_guide = " "
         return name, detail, icon, expand_guide
     end
 
+    local dir = "dir"
     if config.use_web_devicons then
-        icon = devicons.get_icon("dir")
+        icon = require("nvim-web-devicons").get_icon(dir)
+    else
+        icon = icon_set[dir] or dir -- The user can provide a icon for dir.
     end
     return name, detail, icon
 end

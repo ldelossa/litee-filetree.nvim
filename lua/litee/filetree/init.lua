@@ -1084,21 +1084,26 @@ function M.setup(user_config)
         return
     end
 
-    if not pcall(require, "nvim-web-devicons") and config.use_web_devicons then
-        lib_notify.notify_popup_with_timeout(
-            "Litee-filetree is configured to use nvim-web-devicons but the module is not loaded.", 7500, "error")
-    else
-        -- setup the dir icon and file type.
-        local devicons = require("nvim-web-devicons")
-        require("nvim-web-devicons").set_icon({
-          ["dir"] = {
-            icon = "",
-            color = "#6d8086",
-            cterm_color = "108",
-            name = "Directory",
-          },
-        })
-        devicons.set_up_highlights()
+    -- setup icon_set: this must be non-nil
+    M.icon_set = require('litee.lib').icon_set_update(config.icon_set_custom, config.icon_set)
+
+    if config.use_web_devicons then
+        if not pcall(require, "nvim-web-devicons") then
+            lib_notify.notify_popup_with_timeout(
+                "Litee-filetree is configured to use nvim-web-devicons but the module is not loaded.", 7500, "error")
+        else
+            -- setup the dir icon and file type.
+            local devicons = require("nvim-web-devicons")
+            require("nvim-web-devicons").set_icon({
+              ["dir"] = {
+                icon = "",
+                color = "#6d8086",
+                cterm_color = "108",
+                name = "Directory",
+              },
+            })
+            devicons.set_up_highlights()
+        end
     end
 
     lib_panel.register_component("filetree", pre_window_create, post_window_create)
