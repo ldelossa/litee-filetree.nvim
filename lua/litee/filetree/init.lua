@@ -140,16 +140,10 @@ end
 -- on panel toggle the filetree will be restored.
 function M.hide_filetree()
     local ctx = ui_req_ctx()
-    if ctx.tree_type ~= "filetree" then
-        return
-    end
     if ctx.state["filetree"].win ~= nil then
         if vim.api.nvim_win_is_valid(ctx.state["filetree"].win) then
             vim.api.nvim_win_close(ctx.state["filetree"].win, true)
         end
-    end
-    if vim.api.nvim_win_is_valid(ctx.state["filetree"].invoking_win) then
-        vim.api.nvim_set_current_win(ctx.state["filetree"].invoking_win)
     end
 end
 
@@ -384,6 +378,9 @@ function M.touch(node, component_state, cb)
             vim.api.nvim_set_current_win(component_state.invoking_win)
             vim.cmd("edit " .. touch_path)
             autocmd.file_tracking()
+            if config.on_open == "popup" then
+                M.hide_filetree()
+            end
         end
 
         local t = lib_tree.get_tree(component_state.tree)
