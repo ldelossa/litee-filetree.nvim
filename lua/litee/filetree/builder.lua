@@ -15,7 +15,8 @@ function M.expand(root, component_state)
         local child_node = lib_tree_node.new_node(child, uri, 0)
         child_node.filetree_item = {
             uri = uri,
-            is_dir = (function() if is_dir == 0 then return false else return true end end)()
+            is_dir = (function() if is_dir == 0 then return false else return true end end)(),
+            selected = false,
         }
         local range = {}
         range["start"] = { line = 0, character = 0}

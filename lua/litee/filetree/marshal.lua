@@ -19,7 +19,6 @@ function M.marshal_func(node)
     local name, detail, icon = "", "", ""
 
     name = node.name
-
     -- this option will make all filetree entries show their relative paths
     -- from root. usefule for bottom/top layouts.
     if config.relative_filetree_entries then
@@ -46,6 +45,9 @@ function M.marshal_func(node)
             icon = icon_set[node_name] or ""
         end
         local expand_guide = " "
+        if node.filetree_item.selected then
+            icon = "• " .. icon
+        end
         return name, detail, icon, expand_guide
     end
 
@@ -55,6 +57,10 @@ function M.marshal_func(node)
     else
         icon = icon_set[dir] or dir -- The user can provide a icon for dir.
     end
+    if node.filetree_item.selected then
+        icon = "‣ " .. icon
+    end
+
     return name, detail, icon
 end
 

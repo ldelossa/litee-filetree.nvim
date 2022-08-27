@@ -10,7 +10,6 @@ local lib_util_win      = require('litee.lib.util.window')
 local lib_path          = require('litee.lib.util.path')
 
 local filetree_buf      = require('litee.filetree.buffer')
-local filetree_au       = require('litee.filetree.autocmds')
 local filetree_help_buf = require('litee.filetree.help_buffer')
 local marshal_func      = require('litee.filetree.marshal').marshal_func
 local details_func      = require('litee.filetree.details').details_func
@@ -294,29 +293,23 @@ function M.resolve_file_name(uri)
     return dir
 end
 
--- var for holding any currently selected
--- node.
-local selected_node = nil
+local selected_nodes = {}
 
--- select stores the provided node for a following
--- action and updates cursorline hi for the filetree_win
--- to indicate the node is selected.
-function M.select(node, component_state)
-    M.deselect(component_state)
-    selected_node = node
-    vim.api.nvim_win_set_option(component_state.win, 'winhl', "CursorLine:" .. "LTSelectFiletree")
-    local type = (function() if node.filetree_item.is_dir then return "[dir]" else return "[file]" end end)()
-    local details = type .. " " .. lib_util.relative_path_from_uri(node.key)
-    lib_notify.notify_popup(details .. " selected", "warning")
+local function reset_selected_nodes()
+    selected_nodes = {}
 end
 
--- select stores the provided node for a following
--- action and updates cursorline hi for the filetree_win
--- to indicate the node is selected.
-function M.deselect(component_state)
-    selected_node = nil
-    vim.api.nvim_win_set_option(component_state.win, 'winhl', "CursorLine:CursorLine")
-    lib_notify.close_notify_popup()
+function M.toggle_select(node)
+    if selected_nodes[node.key] == nil then
+        node.filetree_item.selected = false
+    end
+    if node.filetree_item.selected then
+        node.filetree_item.selected = false
+        selected_nodes[node.key] = nil
+    else
+        node.filetree_item.selected = true
+        selected_nodes[node.key] = node
+    end
 end
 
 -- touch will create a new file on the file system.
@@ -478,14 +471,33 @@ function M.rm(node, component_state, cb)
             local t = lib_tree.get_tree(component_state.tree)
             local dpt = t.depth_table
             builder.build_filetree_recursive(t.root, component_state, dpt)
-            cb()
+            if cb ~= nil then
+                cb()
+            end
             return
         end
         if input ~= "n" then
             lib_notify.notify_popup_with_timeout(string.format("Did not understand input: %s, delete aborted.", input), 7500, "error")
         end
-        cb()
+        if cb ~= nil then
+            cb()
+        end
     end)
+end
+
+function M.rm_selected(node, component_state, cb) 
+    for _, _ in pairs(selected_nodes) do
+        goto rm
+    end
+    goto noop
+
+    ::rm::
+    for _, s_node in pairs(selected_nodes) do
+        M.rm(s_node, component_state, nil)
+    end
+    cb()
+
+    ::noop::
 end
 
 local function rename_file_helper(old_path, new_path)
@@ -655,38 +667,47 @@ end
 -- mv_selected will move the currently selected node
 -- into the directory or parent directory of the incoming `node`.
 function M.mv_selected(node, component_state, cb)
-    if selected_node == nil then
-        lib_notify.notify_popup_with_timeout("No file selected.", 7500, "error")
-        return
-    end
-    local parent_dir = ""
-    local selected_file = M.resolve_file_name(selected_node.filetree_item.uri)
-    if node.filetree_item.is_dir then
-        parent_dir = node.filetree_item.uri .. '/'
-        node.expanded = true
-    else
-        parent_dir = M.resolve_parent_directory(node.filetree_item.uri)
-    end
+    local f = function(node, selected_node)
+        local parent_dir = ""
+        local selected_file = M.resolve_file_name(selected_node.filetree_item.uri)
+        if node.filetree_item.is_dir then
+            parent_dir = node.filetree_item.uri .. '/'
+            node.expanded = true
+        else
+            parent_dir = M.resolve_parent_directory(node.filetree_item.uri)
+        end
 
-    local from = selected_node.filetree_item.uri
-    local to = parent_dir .. selected_file
+        local from = selected_node.filetree_item.uri
+        local to = parent_dir .. selected_file
 
-    local perms = vim.fn.getfperm(to)
-    if perms ~= "" then
-        vim.ui.input(
-        {
-            prompt = string.format("\r%s exists, rename it or operation will cancel. Provide no input to cancel operation: ", to),
-            default = selected_file,
-        },
-        function(new_basename)
-            if new_basename == nil or new_basename == "" then
-                return
-            end
-            to = parent_dir .. new_basename
+        local perms = vim.fn.getfperm(to)
+        if perms ~= "" then
+            vim.ui.input(
+            {
+                prompt = string.format("\r%s exists, rename it or operation will cancel. Provide no input to cancel operation: ", to),
+                default = selected_file,
+            },
+            function(new_basename)
+                if new_basename == nil or new_basename == "" then
+                    return
+                end
+                to = parent_dir .. new_basename
+                vim.fn.rename(from, to)
+            end)
+        else
             vim.fn.rename(from, to)
-        end)
-    else
-        vim.fn.rename(from, to)
+        end
+    end
+
+    for _, _ in pairs(selected_nodes) do
+        goto move
+    end
+    goto noop
+
+    ::move::
+    for _, s_node in pairs(selected_nodes) do
+        f(node, s_node)
+        M.toggle_select(s_node)
     end
 
     -- if node is a dir expand it, since we just
@@ -699,7 +720,7 @@ function M.mv_selected(node, component_state, cb)
     local dpt = t.depth_table
     builder.build_filetree_recursive(t.root, component_state, dpt)
     cb()
-    M.deselect(component_state)
+    ::noop::
 end
 
 -- recursive_cp performs a recursive copy of a directory.
@@ -744,62 +765,70 @@ end
 -- if the node is a directory a recursive copy will be
 -- performed.
 function M.cp_selected(node, component_state, cb)
-    if selected_node == nil then
-        lib_notify.notify_popup_with_timeout("No file selected.", 7500, "error")
-        return
-    end
-    -- the new directory we want to move `selected_node` to, including
-    -- the trailing slash.
-    local move_to = ""
-    if node.filetree_item.is_dir then
-        move_to = node.filetree_item.uri .. '/'
-        node.expanded = true
-    else
-        move_to = M.resolve_parent_directory(node.filetree_item.uri)
-    end
+    local f = function(node, selected_node)
+        -- the new directory we want to move `selected_node` to, including
+        -- the trailing slash.
+        local move_to = ""
+        if node.filetree_item.is_dir then
+            move_to = node.filetree_item.uri .. '/'
+            node.expanded = true
+        else
+            move_to = M.resolve_parent_directory(node.filetree_item.uri)
+        end
+        if not selected_node.filetree_item.is_dir then
+            local fname = M.resolve_file_name(selected_node.filetree_item.uri)
+            local from = selected_node.filetree_item.uri
+            local to = move_to .. fname
+            local perms = vim.fn.getfperm(to)
+            if perms ~= "" then
+                vim.ui.input(
+                {
+                    prompt = string.format("\r%s exists, rename it or overwrite. Provide no input to cancel operation: ", fname),
+                    default = fname,
 
-    if not selected_node.filetree_item.is_dir then
-        local fname = M.resolve_file_name(selected_node.filetree_item.uri)
-        local from = selected_node.filetree_item.uri
-        local to = move_to .. fname
-        local perms = vim.fn.getfperm(to)
-        if perms ~= "" then
-            vim.ui.input(
-            {
-                prompt = string.format("\r%s exists, rename it or overwrite. Provide no input to cancel operation: ", fname),
-                default = fname,
-
-            },
-            function(new_basename)
-                if new_basename == nil or new_basename == "" then
+                },
+                function(new_basename)
+                    if new_basename == nil or new_basename == "" then
+                        return
+                    end
+                    to = move_to .. new_basename
+                    vim.fn.writefile(vim.fn.readfile(from), to)
+                end)
+            else
+                if vim.fn.writefile(vim.fn.readfile(from), to) == -1 then
                     return
                 end
-                to = move_to .. new_basename
-                vim.fn.writefile(vim.fn.readfile(from), to)
-            end)
+            end
         else
-            if vim.fn.writefile(vim.fn.readfile(from), to) == -1 then
+            local fail = false
+            if vim.fn.isdirectory(move_to .. lib_path.basename(selected_node.filetree_item.uri)) == 1 then
+                vim.ui.input(
+                {
+                    prompt = string.format("\r%s/ exists in %s, merge? (y/n): ", lib_path.basename(selected_node.filetree_item.uri), move_to),
+                },
+                function(b)
+                    if b == nil or b ~= "y" then
+                        fail = true
+                        return
+                    end
+                end)
+            end
+            if fail then
                 return
             end
+            recursive_cp(selected_node.filetree_item.uri, move_to)
         end
-    else
-        local fail = false
-        if vim.fn.isdirectory(move_to .. lib_path.basename(selected_node.filetree_item.uri)) == 1 then
-            vim.ui.input(
-            {
-                prompt = string.format("\r%s/ exists in %s, merge? (y/n): ", lib_path.basename(selected_node.filetree_item.uri), move_to),
-            },
-            function(b)
-                if b == nil or b ~= "y" then
-                    fail = true
-                    return
-                end
-            end)
-        end
-        if fail then
-            return
-        end
-        recursive_cp(selected_node.filetree_item.uri, move_to)
+    end
+
+    for _, _ in pairs(selected_nodes) do
+        goto copy
+    end
+    goto noop
+
+    ::copy::
+    for _, s_node in pairs(selected_nodes) do
+        f(node, s_node)
+        M.toggle_select(s_node)
     end
 
     -- if node is a dir expand it, since we just
@@ -812,7 +841,7 @@ function M.cp_selected(node, component_state, cb)
     local dpt = t.depth_table
     builder.build_filetree_recursive(t.root, component_state, dpt)
     cb()
-    M.deselect(component_state)
+    ::noop::
 end
 
 -- filetree_ops switches the provided op to the correct
@@ -830,7 +859,12 @@ M.filetree_ops = function(opt)
     end
 
     if opt == "select" then
-        M.select(ctx.node, ctx.state["filetree"])
+        M.toggle_select(ctx.node)
+        lib_tree.write_tree(
+            ctx.state["filetree"].buf,
+            ctx.state["filetree"].tree,
+            marshal_func
+        )
         lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
     end
     if opt == "deselect" then
@@ -858,6 +892,20 @@ M.filetree_ops = function(opt)
         end)
     end
     if opt == "rm" then
+        for _, node in pairs(selected_nodes) do
+            -- we only need to see if at least one selected node exists, M.rm_selected
+            -- wil do the actual iteration, and we'll early return
+            M.rm_selected(node, ctx.state["filetree"], function()
+                lib_tree.write_tree(
+                    ctx.state["filetree"].buf,
+                    ctx.state["filetree"].tree,
+                    marshal_func
+                )
+                lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
+            end)
+            reset_selected_nodes()
+            return
+        end
         M.rm(ctx.node, ctx.state["filetree"], function()
             lib_tree.write_tree(
                 ctx.state["filetree"].buf,
@@ -886,6 +934,7 @@ M.filetree_ops = function(opt)
             )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
+        reset_selected_nodes()
     end
     if opt == "cp" then
         M.cp_selected(ctx.node, ctx.state["filetree"], function()
@@ -896,6 +945,7 @@ M.filetree_ops = function(opt)
             )
             lib_util.safe_cursor_reset(ctx.state["filetree"].win, ctx.cursor)
         end)
+        reset_selected_nodes()
     end
     if opt == "exec_perm" then
         M.toggle_exec_perm(ctx.node)
